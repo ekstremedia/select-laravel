@@ -33,7 +33,7 @@ Create Game → Join Lobby → Start
 
 ### Phase Details
 
-**Lobby** — A player creates a game and receives a 6-character code (e.g. `CRF6B`). Other players join using this code. The host starts when ready (minimum 2 players).
+**Lobby** — A player creates a game and receives a 6-character code (e.g. `CRF6BX`). Other players join using this code. The host starts when ready (minimum 2 players).
 
 **Answering** — A random acronym is generated and displayed. Each player writes a sentence where every word starts with the corresponding letter. Players can mark themselves "ready" to skip the remaining timer. If all players are ready, voting starts immediately.
 
