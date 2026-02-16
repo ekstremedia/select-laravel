@@ -27,9 +27,9 @@ class GuestRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'nickname.regex' => 'Nickname may only contain letters, numbers, and underscores.',
-            'nickname.min' => 'Nickname must be at least 3 characters.',
-            'nickname.max' => 'Nickname must not exceed 20 characters.',
+            'nickname.regex' => 'Kallenavn kan kun inneholde bokstaver, tall og understrek.',
+            'nickname.min' => 'Kallenavn må være minst 3 tegn.',
+            'nickname.max' => 'Kallenavn kan ikke være mer enn 20 tegn.',
         ];
     }
 }

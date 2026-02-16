@@ -44,9 +44,11 @@ class GameController extends Controller
         $formatGame = fn ($game) => [
             'code' => $game->code,
             'host_nickname' => $game->host?->nickname,
+            'host_avatar_url' => $game->host?->user?->gravatarUrl(48),
             'player_count' => $game->player_count,
             'max_players' => $game->settings['max_players'] ?? 8,
             'rounds' => $game->settings['rounds'] ?? 8,
+            'is_public' => $game->is_public,
             'has_password' => ! is_null($game->password),
             'status' => $game->status,
             'current_round' => $game->current_round,
@@ -57,7 +59,7 @@ class GameController extends Controller
             ->withCount(['gamePlayers as player_count' => function ($q) {
                 $q->where('is_active', true);
             }])
-            ->with('host')
+            ->with('host.user')
             ->latest()
             ->limit(20)
             ->get()
@@ -71,7 +73,7 @@ class GameController extends Controller
             $myGames = Game::whereIn('status', [Game::STATUS_LOBBY, Game::STATUS_PLAYING, Game::STATUS_VOTING])
                 ->whereHas('gamePlayers', fn ($q) => $q->where('player_id', $player->id)->where('is_active', true))
                 ->withCount(['gamePlayers as player_count' => fn ($q) => $q->where('is_active', true)])
-                ->with('host')
+                ->with('host.user')
                 ->where('updated_at', '>=', now()->subHours(2))
                 ->latest()
                 ->limit(10)
@@ -106,7 +108,7 @@ class GameController extends Controller
         $game = $action->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         return response()->json([
@@ -120,7 +122,7 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         try {
@@ -149,7 +151,7 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         try {
@@ -177,7 +179,7 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         try {
@@ -223,15 +225,15 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if ($game->isFinished()) {
-            return response()->json(['error' => 'Game is already finished'], 422);
+            return response()->json(['error' => 'Spillet er allerede avsluttet.'], 422);
         }
 
         if (! $game->isHostOrCoHost($player)) {
-            return response()->json(['error' => 'Only the host or co-host can end the game'], 403);
+            return response()->json(['error' => 'Bare verten eller medverten kan avslutte spillet.'], 403);
         }
 
         if ($game->isInLobby()) {
@@ -261,7 +263,7 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         $round = $game->currentRoundModel();
@@ -363,17 +365,17 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if (! ($game->settings['chat_enabled'] ?? true)) {
-            return response()->json(['error' => 'Chat is disabled for this game'], 403);
+            return response()->json(['error' => 'Chat er deaktivert for dette spillet.'], 403);
         }
 
         // Rate limit: 1 message per 2 seconds per player
         $rateLimitKey = 'chat:'.$player->id.':'.$code;
         if (RateLimiter::tooManyAttempts($rateLimitKey, 1)) {
-            return response()->json(['error' => 'Too many messages. Wait a moment.'], 429);
+            return response()->json(['error' => 'For mange meldinger. Vent litt.'], 429);
         }
         RateLimiter::hit($rateLimitKey, 2);
 
@@ -412,15 +414,15 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if ($game->host_player_id !== $player->id) {
-            return response()->json(['error' => 'Only the host can manage co-hosts'], 403);
+            return response()->json(['error' => 'Bare verten kan administrere medverter.'], 403);
         }
 
         if ($playerId === $player->id) {
-            return response()->json(['error' => 'Cannot change your own co-host status'], 422);
+            return response()->json(['error' => 'Du kan ikke endre din egen medvertstatus.'], 422);
         }
 
         $gamePlayer = $game->gamePlayers()
@@ -429,7 +431,7 @@ class GameController extends Controller
             ->first();
 
         if (! $gamePlayer) {
-            return response()->json(['error' => 'Player not found in this game'], 404);
+            return response()->json(['error' => 'Spilleren ble ikke funnet i dette spillet.'], 404);
         }
 
         $gamePlayer->update(['is_co_host' => ! $gamePlayer->is_co_host]);
@@ -453,7 +455,7 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         try {
@@ -486,19 +488,19 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if ($game->isFinished()) {
-            return response()->json(['error' => 'Cannot ban players from a finished game'], 422);
+            return response()->json(['error' => 'Kan ikke utestenge spillere fra et avsluttet spill.'], 422);
         }
 
         if (! $game->isHostOrCoHost($player)) {
-            return response()->json(['error' => 'Only the host or co-host can ban players'], 403);
+            return response()->json(['error' => 'Bare verten eller medverten kan utestenge spillere.'], 403);
         }
 
         if ($playerId === $game->host_player_id) {
-            return response()->json(['error' => 'Cannot ban the host'], 422);
+            return response()->json(['error' => 'Kan ikke utestenge verten.'], 422);
         }
 
         $request->validate([
@@ -510,12 +512,12 @@ class GameController extends Controller
             ->first();
 
         if (! $gamePlayer) {
-            return response()->json(['error' => 'Player not found in this game'], 404);
+            return response()->json(['error' => 'Spilleren ble ikke funnet i dette spillet.'], 404);
         }
 
         // Co-hosts cannot ban other co-hosts — only the host can
         if ($player->id !== $game->host_player_id && $gamePlayer->is_co_host) {
-            return response()->json(['error' => 'Only the host can ban co-hosts'], 403);
+            return response()->json(['error' => 'Bare verten kan utestenge medverter.'], 403);
         }
 
         $gamePlayer->update([
@@ -550,15 +552,15 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if (! $game->isInLobby()) {
-            return response()->json(['error' => 'Can only unban players in the lobby'], 422);
+            return response()->json(['error' => 'Kan bare oppheve utestengelse i lobbyen.'], 422);
         }
 
         if (! $game->isHostOrCoHost($player)) {
-            return response()->json(['error' => 'Only the host or co-host can unban players'], 403);
+            return response()->json(['error' => 'Bare verten eller medverten kan oppheve utestengelse.'], 403);
         }
 
         $gamePlayer = $game->gamePlayers()
@@ -567,7 +569,7 @@ class GameController extends Controller
             ->first();
 
         if (! $gamePlayer) {
-            return response()->json(['error' => 'Banned player not found'], 404);
+            return response()->json(['error' => 'Utestengt spiller ble ikke funnet.'], 404);
         }
 
         $gamePlayer->update([
@@ -589,22 +591,22 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if (! $game->isInLobby()) {
-            return response()->json(['error' => 'Can only add bots in the lobby'], 422);
+            return response()->json(['error' => 'Kan bare legge til boter i lobbyen.'], 422);
         }
 
         if (! $game->isHostOrCoHost($player)) {
-            return response()->json(['error' => 'Only host or co-host can add bots'], 403);
+            return response()->json(['error' => 'Bare verten eller medverten kan legge til boter.'], 403);
         }
 
         try {
             $bot = $createBot->execute();
             $joinAction->execute($game, $bot);
         } catch (\Throwable $e) {
-            return response()->json(['error' => 'Failed to add bot: '.$e->getMessage()], 422);
+            return response()->json(['error' => 'Kunne ikke legge til bot: '.$e->getMessage()], 422);
         }
 
         $game->touch();
@@ -633,20 +635,20 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if (! $game->isInLobby()) {
-            return response()->json(['error' => 'Can only remove bots in the lobby'], 422);
+            return response()->json(['error' => 'Kan bare fjerne boter i lobbyen.'], 422);
         }
 
         if (! $game->isHostOrCoHost($player)) {
-            return response()->json(['error' => 'Only host or co-host can remove bots'], 403);
+            return response()->json(['error' => 'Bare verten eller medverten kan fjerne boter.'], 403);
         }
 
         $botPlayer = Player::find($playerId);
         if (! $botPlayer || ! $botPlayer->is_bot) {
-            return response()->json(['error' => 'Player is not a bot'], 422);
+            return response()->json(['error' => 'Spilleren er ikke en bot.'], 422);
         }
 
         $gamePlayer = $game->gamePlayers()
@@ -655,7 +657,7 @@ class GameController extends Controller
             ->first();
 
         if (! $gamePlayer) {
-            return response()->json(['error' => 'Bot not found in this game'], 404);
+            return response()->json(['error' => 'Boten ble ikke funnet i dette spillet.'], 404);
         }
 
         $gamePlayer->update(['is_active' => false]);
@@ -678,7 +680,7 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game || ! $game->isInLobby()) {
-            return response()->json(['error' => 'Game not found or not in lobby'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet eller er ikke i lobbyen.'], 404);
         }
 
         $game->touch();
@@ -692,31 +694,32 @@ class GameController extends Controller
         $oldGame = $getGame->execute($code);
 
         if (! $oldGame) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if (! $oldGame->isFinished()) {
-            return response()->json(['error' => 'Game is not finished'], 422);
+            return response()->json(['error' => 'Spillet er ikke avsluttet.'], 422);
         }
 
         if (! $oldGame->isHostOrCoHost($player)) {
-            return response()->json(['error' => 'Only host or co-host can start a rematch'], 403);
+            return response()->json(['error' => 'Bare verten eller medverten kan starte omkamp.'], 403);
         }
 
-        // Create new game with same settings (forward hashed password)
+        // Create new game with same settings (forward hashed password + plain text)
         $newGame = $createAction->execute(
             $player,
             $oldGame->settings,
             $oldGame->is_public,
             $oldGame->password,
             true,
+            $oldGame->password_text,
         );
 
         // Auto-join all other active players from the old game
         $otherPlayers = $oldGame->activePlayers()->where('players.id', '!=', $player->id)->get();
         foreach ($otherPlayers as $otherPlayer) {
             try {
-                $joinAction->execute($newGame, $otherPlayer);
+                $joinAction->execute($newGame, $otherPlayer, skipPassword: true);
             } catch (\Throwable $e) {
                 Log::warning('Rematch: Failed to auto-join player', [
                     'player_id' => $otherPlayer->id,
@@ -743,22 +746,32 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if (! $game->isHostOrCoHost($player)) {
-            return response()->json(['error' => 'Only host or co-host can change visibility'], 403);
+            return response()->json(['error' => 'Bare verten eller medverten kan endre synlighet.'], 403);
         }
 
         $request->validate([
             'is_public' => 'required|boolean',
         ]);
 
-        $game->update(['is_public' => $request->boolean('is_public')]);
+        $updates = ['is_public' => $request->boolean('is_public')];
+
+        // Clear password when making game public
+        if ($request->boolean('is_public')) {
+            $updates['password'] = null;
+            $updates['password_text'] = null;
+        }
+
+        $game->update($updates);
 
         try {
             broadcast(new GameSettingsChangedBroadcast($game, [
                 'is_public' => $game->is_public,
+                'has_password' => ! is_null($game->password),
+                'changed_by' => $player->nickname,
             ]))->toOthers();
         } catch (\Throwable $e) {
             Log::error('Broadcast failed: game.settings_changed', ['game' => $code, 'error' => $e->getMessage()]);
@@ -766,6 +779,7 @@ class GameController extends Controller
 
         return response()->json([
             'is_public' => $game->is_public,
+            'has_password' => ! is_null($game->password),
         ]);
     }
 
@@ -775,18 +789,18 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if (! $game->isHostOrCoHost($player)) {
-            return response()->json(['error' => 'Only host or co-host can change settings'], 403);
+            return response()->json(['error' => 'Bare verten eller medverten kan endre innstillinger.'], 403);
         }
 
         // Settings that can be changed during play
         $liveSettings = ['chat_enabled'];
 
         $validated = $request->validate([
-            'settings' => ['required', 'array'],
+            'settings' => ['sometimes', 'array'],
             'settings.rounds' => ['nullable', 'integer', 'min:1', 'max:20'],
             'settings.answer_time' => ['nullable', 'integer', 'min:15', 'max:300'],
             'settings.vote_time' => ['nullable', 'integer', 'min:10', 'max:120'],
@@ -804,23 +818,23 @@ class GameController extends Controller
             'password' => ['nullable', 'string', 'min:4', 'max:50'],
         ]);
 
-        // Outside lobby, only allow live-changeable settings + visibility
+        // Outside lobby, only allow live-changeable settings + visibility + password
         if (! $game->isInLobby()) {
             $requestedSettings = array_keys(array_filter($validated['settings'] ?? [], fn ($v) => $v !== null));
             $lobbyOnly = array_diff($requestedSettings, $liveSettings);
-            if (! empty($lobbyOnly) || ! empty($validated['password'])) {
-                return response()->json(['error' => 'Only chat and visibility can be changed during play'], 422);
+            if (! empty($lobbyOnly)) {
+                return response()->json(['error' => 'Bare chat og synlighet kan endres under spill.'], 422);
             }
         }
 
         $currentSettings = $game->settings ?? [];
-        $newSettings = array_merge($currentSettings, array_filter($validated['settings'], fn ($v) => $v !== null));
+        $newSettings = array_merge($currentSettings, array_filter($validated['settings'] ?? [], fn ($v) => $v !== null));
 
         // Cross-validate acronym length
         $minLen = $newSettings['acronym_length_min'] ?? 3;
         $maxLen = $newSettings['acronym_length_max'] ?? 6;
         if ($minLen > $maxLen) {
-            return response()->json(['error' => 'Acronym min length cannot exceed max length'], 422);
+            return response()->json(['error' => 'Akronymets minimumslengde kan ikke overstige maksimumslengden.'], 422);
         }
         $game->settings = $newSettings;
         $game->total_rounds = $newSettings['rounds'] ?? $game->total_rounds;
@@ -829,8 +843,10 @@ class GameController extends Controller
             $game->is_public = $validated['is_public'];
         }
 
-        if (! empty($validated['password'])) {
+        $passwordChanged = ! empty($validated['password']);
+        if ($passwordChanged) {
             $game->password = \Illuminate\Support\Facades\Hash::make($validated['password']);
+            $game->password_text = $validated['password'];
         }
 
         $game->save();
@@ -839,6 +855,10 @@ class GameController extends Controller
             broadcast(new GameSettingsChangedBroadcast($game->fresh(), [
                 'settings' => $game->settings,
                 'is_public' => $game->is_public,
+                'has_password' => ! is_null($game->password),
+                'password_changed' => $passwordChanged,
+                'new_password' => $passwordChanged ? $validated['password'] : null,
+                'changed_by' => $player->nickname,
             ]))->toOthers();
         } catch (\Throwable $e) {
             Log::error('Broadcast failed: game.settings_changed', ['game' => $code, 'error' => $e->getMessage()]);
@@ -847,6 +867,7 @@ class GameController extends Controller
         return response()->json([
             'settings' => $game->settings,
             'is_public' => $game->is_public,
+            'has_password' => ! is_null($game->password),
         ]);
     }
 
@@ -856,11 +877,11 @@ class GameController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         if (! $game->isInLobby()) {
-            return response()->json(['error' => 'Invites can only be sent from the lobby'], 422);
+            return response()->json(['error' => 'Invitasjoner kan bare sendes fra lobbyen.'], 422);
         }
 
         $isParticipant = $game->gamePlayers()
@@ -869,7 +890,7 @@ class GameController extends Controller
             ->exists();
 
         if (! $isParticipant) {
-            return response()->json(['error' => 'Only game participants can send invites'], 403);
+            return response()->json(['error' => 'Bare spilldeltakere kan sende invitasjoner.'], 403);
         }
 
         // Rate limit: 5 invites per player per 10 minutes
@@ -878,7 +899,7 @@ class GameController extends Controller
             $seconds = RateLimiter::availableIn($rateLimitKey);
 
             return response()->json([
-                'error' => 'Too many invites. Try again later.',
+                'error' => 'For mange invitasjoner. Prøv igjen senere.',
                 'retry_after' => $seconds,
             ], 429);
         }
@@ -941,6 +962,7 @@ class GameController extends Controller
             'settings' => $game->settings,
             'is_public' => $game->is_public,
             'has_password' => ! is_null($game->password),
+            'password_text' => $game->password_text,
             'players' => $players,
         ];
 

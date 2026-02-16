@@ -72,7 +72,7 @@ class AdminTest extends TestCase
             ]);
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Player has been banned.']);
+            ->assertJson(['message' => 'Spilleren er utestengt.']);
 
         $user->refresh();
         $this->assertTrue($user->is_banned);
@@ -88,7 +88,7 @@ class AdminTest extends TestCase
             ->postJson("/api/v1/admin/unban/{$player->id}");
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Player has been unbanned.']);
+            ->assertJson(['message' => 'Utestengelsen er opphevet.']);
 
         $user->refresh();
         $this->assertFalse($user->is_banned);

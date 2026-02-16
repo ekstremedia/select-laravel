@@ -38,7 +38,7 @@ class PlayerProfileController extends Controller
         $resolved = $this->resolvePlayer($nickname);
 
         if (! $resolved['user'] && ! $resolved['player']) {
-            return response()->json(['error' => 'Player not found'], 404);
+            return response()->json(['error' => 'Spilleren ble ikke funnet.'], 404);
         }
 
         $playerInfo = [];
@@ -98,7 +98,7 @@ class PlayerProfileController extends Controller
         $resolved = $this->resolvePlayer($nickname);
 
         if (! $resolved['user'] && ! $resolved['player']) {
-            return response()->json(['error' => 'Player not found'], 404);
+            return response()->json(['error' => 'Spilleren ble ikke funnet.'], 404);
         }
 
         $stat = null;
@@ -136,7 +136,7 @@ class PlayerProfileController extends Controller
         $resolved = $this->resolvePlayer($nickname);
 
         if (! $resolved['user'] && ! $resolved['player']) {
-            return response()->json(['error' => 'Player not found'], 404);
+            return response()->json(['error' => 'Spilleren ble ikke funnet.'], 404);
         }
 
         $limit = min((int) $request->query('limit', 20), 50);
@@ -167,7 +167,7 @@ class PlayerProfileController extends Controller
         $resolved = $this->resolvePlayer($nickname);
 
         if (! $resolved['user'] && ! $resolved['player']) {
-            return response()->json(['error' => 'Player not found'], 404);
+            return response()->json(['error' => 'Spilleren ble ikke funnet.'], 404);
         }
 
         $limit = min((int) $request->query('limit', 20), 50);

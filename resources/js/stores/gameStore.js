@@ -22,6 +22,8 @@ export const useGameStore = defineStore('game', () => {
     const readyCount = ref(0);
     const totalPlayersForReady = ref(0);
     const wsChannel = ref(null);
+    const lastPlayerEvent = ref(null);
+    const lastSettingsEvent = ref(null);
 
     let countdownInterval = null;
 
@@ -207,6 +209,9 @@ export const useGameStore = defineStore('game', () => {
         const { data } = await api.games.updateVisibility(code, isPublic);
         if (currentGame.value) {
             currentGame.value.is_public = data.is_public;
+            if (data.has_password !== undefined) {
+                currentGame.value.has_password = data.has_password;
+            }
         }
         return data;
     }
@@ -216,6 +221,9 @@ export const useGameStore = defineStore('game', () => {
         if (currentGame.value) {
             currentGame.value.settings = data.settings;
             currentGame.value.is_public = data.is_public;
+            if (data.has_password !== undefined) {
+                currentGame.value.has_password = data.has_password;
+            }
         }
         return data;
     }
@@ -349,12 +357,36 @@ export const useGameStore = defineStore('game', () => {
                 if (data.player && !players.value.find((p) => p.id === data.player.id)) {
                     players.value.push(data.player);
                 }
+                if (data.player) {
+                    lastPlayerEvent.value = { type: 'joined', nickname: data.player.nickname };
+                }
                 useSoundStore().play('player-join');
             })
             .listen('.player.left', (data) => {
+                const leaving = players.value.find((p) => p.id === data.player_id);
+                if (leaving) {
+                    lastPlayerEvent.value = { type: 'left', nickname: leaving.nickname };
+                }
                 players.value = players.value.filter((p) => p.id !== data.player_id);
                 if (data.new_host_id && currentGame.value) {
                     currentGame.value.host_player_id = data.new_host_id;
+                }
+            })
+            .listen('.player.nickname_changed', (data) => {
+                const player = players.value.find((p) => p.id === data.player_id);
+                if (player) {
+                    lastPlayerEvent.value = {
+                        type: 'nickname_changed',
+                        oldNickname: data.old_nickname,
+                        newNickname: data.new_nickname,
+                    };
+                    player.nickname = data.new_nickname;
+                }
+                // Also update scores
+                const score = scores.value.find((s) => s.player_id === data.player_id);
+                if (score) {
+                    score.nickname = data.new_nickname;
+                    score.player_name = data.new_nickname;
                 }
             })
             .listen('.player.kicked', (data) => {
@@ -463,6 +495,9 @@ export const useGameStore = defineStore('game', () => {
                 }
             })
             .listen('.game.settings_changed', (data) => {
+                const oldSettings = currentGame.value?.settings ? { ...currentGame.value.settings } : {};
+                const oldIsPublic = currentGame.value?.is_public;
+
                 if (currentGame.value) {
                     if (data.settings) {
                         currentGame.value.settings = data.settings;
@@ -470,6 +505,24 @@ export const useGameStore = defineStore('game', () => {
                     if (data.is_public !== undefined) {
                         currentGame.value.is_public = data.is_public;
                     }
+                    if (data.has_password !== undefined) {
+                        currentGame.value.has_password = data.has_password;
+                    }
+                }
+
+                // Detect specific changes and emit settings event
+                const changes = [];
+                if (data.settings?.chat_enabled !== undefined && data.settings.chat_enabled !== (oldSettings.chat_enabled ?? true)) {
+                    changes.push({ type: data.settings.chat_enabled ? 'chat_enabled' : 'chat_disabled' });
+                }
+                if (data.is_public !== undefined && data.is_public !== oldIsPublic) {
+                    changes.push({ type: data.is_public ? 'visibility_public' : 'visibility_private' });
+                }
+                if (data.password_changed) {
+                    changes.push({ type: 'password_changed', password: data.new_password });
+                }
+                if (changes.length) {
+                    lastSettingsEvent.value = { changes, changedBy: data.changed_by, timestamp: Date.now() };
                 }
             })
             .listen('.lobby.expiring', (data) => {
@@ -680,6 +733,8 @@ export const useGameStore = defineStore('game', () => {
         sendChatMessage,
         fetchGameState,
         fetchCurrentRound,
+        lastPlayerEvent,
+        lastSettingsEvent,
         connectWebSocket,
         disconnectWebSocket,
         resetState,

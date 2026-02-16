@@ -10,14 +10,14 @@ use Illuminate\Support\Facades\Hash;
 
 class JoinGameAction
 {
-    public function execute(Game $game, Player $player, ?string $password = null): GamePlayer
+    public function execute(Game $game, Player $player, ?string $password = null, bool $skipPassword = false): GamePlayer
     {
         if ($game->isFinished()) {
             throw new \InvalidArgumentException('Cannot join a finished game');
         }
 
-        // Check password for protected games
-        if ($game->password && ! Hash::check($password ?? '', $game->password)) {
+        // Check password for protected games (skip for bots and internal joins like rematch)
+        if (! $skipPassword && ! $player->is_bot && $game->password && ! Hash::check($password ?? '', $game->password)) {
             throw new \InvalidArgumentException('Incorrect game password');
         }
 

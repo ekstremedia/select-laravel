@@ -21,6 +21,7 @@ class Game extends Model
         'total_rounds',
         'is_public',
         'password',
+        'password_text',
         'started_at',
         'finished_at',
         'duration_seconds',
@@ -38,6 +39,7 @@ class Game extends Model
 
     protected $hidden = [
         'password',
+        'password_text',
     ];
 
     public const STATUS_LOBBY = 'lobby';

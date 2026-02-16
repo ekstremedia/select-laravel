@@ -82,7 +82,7 @@ class CoHostTest extends TestCase
             ->postJson("/api/v1/games/{$this->gameCode}/co-host/{$this->host->id}");
 
         $response->assertStatus(403)
-            ->assertJson(['error' => 'Only the host can manage co-hosts']);
+            ->assertJson(['error' => 'Bare verten kan administrere medverter.']);
     }
 
     public function test_host_cannot_change_own_co_host_status(): void
@@ -91,7 +91,7 @@ class CoHostTest extends TestCase
             ->postJson("/api/v1/games/{$this->gameCode}/co-host/{$this->host->id}");
 
         $response->assertStatus(422)
-            ->assertJson(['error' => 'Cannot change your own co-host status']);
+            ->assertJson(['error' => 'Du kan ikke endre din egen medvertstatus.']);
     }
 
     public function test_co_host_can_start_game(): void
@@ -152,7 +152,7 @@ class CoHostTest extends TestCase
             ->postJson("/api/v1/rounds/{$roundId}/voting");
 
         $response->assertStatus(403)
-            ->assertJson(['error' => 'Only host or co-host can start voting']);
+            ->assertJson(['error' => 'Bare verten eller medverten kan starte avstemming.']);
     }
 
     public function test_co_host_flag_included_in_game_response(): void
@@ -215,7 +215,7 @@ class CoHostTest extends TestCase
             ]);
 
         $response->assertStatus(403)
-            ->assertJson(['error' => 'Only host or co-host can change visibility']);
+            ->assertJson(['error' => 'Bare verten eller medverten kan endre synlighet.']);
     }
 
     /**

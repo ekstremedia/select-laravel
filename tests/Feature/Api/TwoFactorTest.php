@@ -51,7 +51,7 @@ class TwoFactorTest extends TestCase
             ->postJson('/api/v1/two-factor/enable');
 
         $response->assertStatus(422)
-            ->assertJson(['error' => 'Two-factor authentication is already enabled.']);
+            ->assertJson(['error' => 'Totrinnsverifisering er allerede aktivert.']);
     }
 
     public function test_can_confirm_two_factor_with_valid_code(): void
@@ -72,7 +72,7 @@ class TwoFactorTest extends TestCase
             ]);
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Two-factor authentication confirmed.']);
+            ->assertJson(['message' => 'Totrinnsverifisering bekreftet.']);
 
         $this->user->refresh();
         $this->assertNotNull($this->user->two_factor_confirmed_at);
@@ -90,7 +90,7 @@ class TwoFactorTest extends TestCase
             ]);
 
         $response->assertStatus(422)
-            ->assertJson(['error' => 'The provided code is invalid.']);
+            ->assertJson(['error' => 'Koden er ugyldig.']);
     }
 
     public function test_cannot_confirm_without_enabling_first(): void
@@ -101,7 +101,7 @@ class TwoFactorTest extends TestCase
             ]);
 
         $response->assertStatus(422)
-            ->assertJson(['error' => 'Two-factor authentication has not been enabled.']);
+            ->assertJson(['error' => 'Totrinnsverifisering er ikke aktivert.']);
     }
 
     public function test_can_disable_two_factor_with_password(): void
@@ -119,7 +119,7 @@ class TwoFactorTest extends TestCase
             ]);
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Two-factor authentication disabled.']);
+            ->assertJson(['message' => 'Totrinnsverifisering deaktivert.']);
 
         $this->user->refresh();
         $this->assertNull($this->user->two_factor_secret);
@@ -140,7 +140,7 @@ class TwoFactorTest extends TestCase
             ]);
 
         $response->assertStatus(422)
-            ->assertJson(['error' => 'The provided password is incorrect.']);
+            ->assertJson(['error' => 'Passordet er feil.']);
     }
 
     public function test_two_factor_requires_authentication(): void

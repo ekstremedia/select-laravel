@@ -31,8 +31,11 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'nickname.regex' => 'Nickname may only contain letters, numbers, and underscores.',
-            'nickname.unique' => 'This nickname is already taken.',
+            'nickname.regex' => 'Kallenavn kan kun inneholde bokstaver, tall og understrek.',
+            'nickname.unique' => 'Kallenavnet er allerede i bruk.',
+            'email.unique' => 'E-postadressen er allerede i bruk.',
+            'password.min' => 'Passordet må være minst 8 tegn.',
+            'password.confirmed' => 'Passordbekreftelsen stemmer ikke.',
         ];
     }
 }

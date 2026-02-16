@@ -19,7 +19,7 @@ class TwoFactorController extends Controller
         $user = $request->user();
 
         if ($user->hasTwoFactorEnabled()) {
-            return response()->json(['error' => 'Two-factor authentication is already enabled.'], 422);
+            return response()->json(['error' => 'Totrinnsverifisering er allerede aktivert.'], 422);
         }
 
         $google2fa = new Google2FA;
@@ -50,25 +50,25 @@ class TwoFactorController extends Controller
         $user = $request->user();
 
         if (! $user->two_factor_secret) {
-            return response()->json(['error' => 'Two-factor authentication has not been enabled.'], 422);
+            return response()->json(['error' => 'Totrinnsverifisering er ikke aktivert.'], 422);
         }
 
         if ($user->two_factor_confirmed_at) {
-            return response()->json(['error' => 'Two-factor authentication is already confirmed.'], 422);
+            return response()->json(['error' => 'Totrinnsverifisering er allerede bekreftet.'], 422);
         }
 
         $google2fa = new Google2FA;
         $valid = $google2fa->verifyKey($user->two_factor_secret, $request->validated('code'));
 
         if (! $valid) {
-            return response()->json(['error' => 'The provided code is invalid.'], 422);
+            return response()->json(['error' => 'Koden er ugyldig.'], 422);
         }
 
         $user->forceFill([
             'two_factor_confirmed_at' => now(),
         ])->save();
 
-        return response()->json(['message' => 'Two-factor authentication confirmed.']);
+        return response()->json(['message' => 'Totrinnsverifisering bekreftet.']);
     }
 
     public function disable(TwoFactorDisableRequest $request): JsonResponse
@@ -76,7 +76,7 @@ class TwoFactorController extends Controller
         $user = $request->user();
 
         if (! Hash::check($request->validated('password'), $user->password)) {
-            return response()->json(['error' => 'The provided password is incorrect.'], 422);
+            return response()->json(['error' => 'Passordet er feil.'], 422);
         }
 
         $user->forceFill([
@@ -85,6 +85,6 @@ class TwoFactorController extends Controller
             'two_factor_recovery_codes' => null,
         ])->save();
 
-        return response()->json(['message' => 'Two-factor authentication disabled.']);
+        return response()->json(['message' => 'Totrinnsverifisering deaktivert.']);
     }
 }

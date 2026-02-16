@@ -125,7 +125,7 @@ class GameInviteTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJson(['error' => 'Invites can only be sent from the lobby']);
+            ->assertJson(['error' => 'Invitasjoner kan bare sendes fra lobbyen.']);
     }
 
     public function test_invite_only_allowed_for_participants(): void
@@ -141,7 +141,7 @@ class GameInviteTest extends TestCase
         ]);
 
         $response->assertStatus(403)
-            ->assertJson(['error' => 'Only game participants can send invites']);
+            ->assertJson(['error' => 'Bare spilldeltakere kan sende invitasjoner.']);
     }
 
     public function test_invite_rate_limited_to_5_per_10_minutes(): void

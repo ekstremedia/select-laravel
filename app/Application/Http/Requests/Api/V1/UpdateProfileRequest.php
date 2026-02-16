@@ -37,9 +37,9 @@ class UpdateProfileRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.min' => 'Name must be at least 2 characters.',
-            'name.max' => 'Name must not exceed 50 characters.',
-            'email.unique' => 'This email address is already in use.',
+            'name.min' => 'Navnet må være minst 2 tegn.',
+            'name.max' => 'Navnet kan ikke være mer enn 50 tegn.',
+            'email.unique' => 'E-postadressen er allerede i bruk.',
         ];
     }
 }

@@ -28,7 +28,9 @@ class UpdatePasswordRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'current_password.current_password' => 'The current password is incorrect.',
+            'current_password.current_password' => 'Nåværende passord er feil.',
+            'password.min' => 'Passordet må være minst 8 tegn.',
+            'password.confirmed' => 'Passordbekreftelsen stemmer ikke.',
         ];
     }
 }

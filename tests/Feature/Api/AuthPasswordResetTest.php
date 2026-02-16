@@ -21,7 +21,7 @@ class AuthPasswordResetTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Password reset link sent.']);
+            ->assertJson(['message' => 'Tilbakestillingslenke sendt.']);
     }
 
     public function test_forgot_password_requires_email(): void
@@ -54,7 +54,7 @@ class AuthPasswordResetTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Password has been reset.']);
+            ->assertJson(['message' => 'Passordet er tilbakestilt.']);
 
         // Verify new password works
         $user->refresh();

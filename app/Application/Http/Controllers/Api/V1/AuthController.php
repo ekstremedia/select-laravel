@@ -2,6 +2,7 @@
 
 namespace App\Application\Http\Controllers\Api\V1;
 
+use App\Application\Broadcasting\Events\PlayerNicknameChangedBroadcast;
 use App\Application\Http\Requests\Api\V1\ConvertGuestRequest;
 use App\Application\Http\Requests\Api\V1\ForgotPasswordRequest;
 use App\Application\Http\Requests\Api\V1\GuestRequest;
@@ -72,6 +73,7 @@ class AuthController extends Controller
                         'name' => $player->user->name,
                         'email' => $player->user->email,
                         'role' => $player->user->role,
+                        'gravatar_url' => $player->user->gravatarUrl(),
                     ],
                     'token' => $token,
                 ], 201);
@@ -110,6 +112,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'gravatar_url' => $user->gravatarUrl(),
             ],
             'token' => $token,
         ], 201);
@@ -130,7 +133,7 @@ class AuthController extends Controller
         // Check if user is banned
         if ($user->isBanned()) {
             return response()->json([
-                'error' => 'Your account has been banned.',
+                'error' => 'Kontoen din er utestengt.',
                 'reason' => $user->ban_reason,
             ], 403);
         }
@@ -140,7 +143,7 @@ class AuthController extends Controller
             if (empty($validated['two_factor_code'])) {
                 return response()->json([
                     'two_factor_required' => true,
-                    'message' => 'Two-factor authentication code required.',
+                    'message' => 'Totrinnsverifiseringskode er påkrevd.',
                 ], 422);
             }
 
@@ -149,7 +152,7 @@ class AuthController extends Controller
 
             if (! $valid) {
                 throw ValidationException::withMessages([
-                    'two_factor_code' => ['The two-factor code is invalid.'],
+                    'two_factor_code' => ['Totrinnskoden er ugyldig.'],
                 ]);
             }
         }
@@ -173,6 +176,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'gravatar_url' => $user->gravatarUrl(),
             ],
             'token' => $token,
         ]);
@@ -182,7 +186,7 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out successfully']);
+        return response()->json(['message' => 'Logget ut.']);
     }
 
     public function convert(ConvertGuestRequest $request, ConvertGuestToUserAction $action): JsonResponse
@@ -192,7 +196,7 @@ class AuthController extends Controller
         $player = Player::where('guest_token', $validated['guest_token'])->first();
 
         if (! $player) {
-            return response()->json(['error' => 'Invalid guest token'], 404);
+            return response()->json(['error' => 'Ugyldig gjestetoken.'], 404);
         }
 
         $player = $action->execute(
@@ -218,6 +222,7 @@ class AuthController extends Controller
                 'name' => $player->user->name,
                 'email' => $player->user->email,
                 'role' => $player->user->role,
+                'gravatar_url' => $player->user->gravatarUrl(),
             ],
             'token' => $token,
         ]);
@@ -228,7 +233,7 @@ class AuthController extends Controller
         $player = $request->attributes->get('player');
 
         if (! $player) {
-            return response()->json(['error' => 'Unauthenticated'], 401);
+            return response()->json(['error' => 'Ikke autentisert.'], 401);
         }
 
         $response = [
@@ -264,7 +269,7 @@ class AuthController extends Controller
         );
 
         if ($status === Password::RESET_LINK_SENT) {
-            return response()->json(['message' => 'Password reset link sent.']);
+            return response()->json(['message' => 'Tilbakestillingslenke sendt.']);
         }
 
         throw ValidationException::withMessages([
@@ -288,7 +293,7 @@ class AuthController extends Controller
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            return response()->json(['message' => 'Password has been reset.']);
+            return response()->json(['message' => 'Passordet er tilbakestilt.']);
         }
 
         throw ValidationException::withMessages([
@@ -309,6 +314,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'gravatar_url' => $user->gravatarUrl(),
             ],
         ]);
     }
@@ -317,12 +323,30 @@ class AuthController extends Controller
     {
         $player = $request->attributes->get('player');
         $validated = $request->validated();
+        $oldNickname = $player->nickname;
 
         $player->update(['nickname' => $validated['nickname']]);
 
         // Also update user nickname if registered
         if ($player->user) {
             $player->user->update(['nickname' => $validated['nickname']]);
+        }
+
+        // Broadcast nickname change to active games (only if actually changed)
+        if ($oldNickname !== $validated['nickname']) {
+            $activeGames = $player->games()
+                ->wherePivot('is_active', true)
+                ->whereIn('status', ['lobby', 'playing', 'voting', 'results'])
+                ->get();
+
+            foreach ($activeGames as $game) {
+                broadcast(new PlayerNicknameChangedBroadcast(
+                    $game,
+                    $player->id,
+                    $oldNickname,
+                    $validated['nickname']
+                ));
+            }
         }
 
         return response()->json([
@@ -339,7 +363,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->validated('password')),
         ]);
 
-        return response()->json(['message' => 'Password updated successfully.']);
+        return response()->json(['message' => 'Passordet er oppdatert.']);
     }
 
     public function deleteAccount(Request $request): JsonResponse
@@ -358,6 +382,6 @@ class AuthController extends Controller
         // Delete user
         $user->delete();
 
-        return response()->json(['message' => 'Account deleted successfully.']);
+        return response()->json(['message' => 'Kontoen er slettet.']);
     }
 }

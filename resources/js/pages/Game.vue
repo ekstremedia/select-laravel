@@ -2,7 +2,10 @@
     <GameLayout
         :game-code="gameStore.gameCode || props.code"
         :player-count="gameStore.players.length"
-        :is-private="gameStore.currentGame?.has_password === true"
+        :max-players="gameStore.currentGame?.settings?.max_players ?? 8"
+        :players="gameStore.players"
+        :host-player-id="gameStore.currentGame?.host_player_id"
+        :is-private="gameStore.currentGame?.is_public === false"
         @leave="handleLeave"
     >
         <div class="flex flex-col h-full overflow-hidden">
@@ -56,6 +59,37 @@
                                             {{ gameStore.currentGame?.is_public ? t('create.public') : t('create.private') }}
                                         </span>
                                     </button>
+                                    <!-- Password section (visible when private) -->
+                                    <div v-if="!gameStore.currentGame?.is_public" class="border-t border-slate-200 dark:border-slate-700 mt-1 pt-1">
+                                        <div v-if="!showPasswordInput" class="px-3 py-2">
+                                            <button
+                                                class="w-full text-left text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 flex items-center gap-1.5"
+                                                @click="showPasswordInput = true"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" /></svg>
+                                                {{ gameStore.currentGame?.has_password ? t('game.changePassword') : t('game.setPassword') }}
+                                            </button>
+                                        </div>
+                                        <form v-else class="px-3 py-2" @submit.prevent="handleSetPassword">
+                                            <div class="flex gap-1.5">
+                                                <input
+                                                    ref="inlinePasswordInput"
+                                                    v-model="inlinePassword"
+                                                    type="password"
+                                                    :placeholder="t('create.password')"
+                                                    class="flex-1 min-w-0 px-2 py-1 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    :disabled="inlinePassword.length < 4"
+                                                    class="px-2 py-1 text-xs font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    {{ t('common.save') }}
+                                                </button>
+                                            </div>
+                                            <p class="text-xs text-slate-400 mt-1">{{ t('game.passwordMinLength') }}</p>
+                                        </form>
+                                    </div>
                                 </div>
                             </Popover>
                             <span class="text-sm font-mono font-bold" :class="gameStore.timeRemaining <= 10 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'">
@@ -94,7 +128,7 @@
                         <!-- Game code display -->
                         <div class="my-6 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900">
                             <p class="text-xs text-emerald-600 dark:text-emerald-400 mb-1 flex items-center justify-center gap-1">
-                                <template v-if="gameStore.currentGame?.has_password">
+                                <template v-if="!gameStore.currentGame?.is_public">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5 text-amber-500 dark:text-amber-400"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" /></svg>
                                     {{ t('lobby.privateGame') }}
                                 </template>
@@ -155,7 +189,14 @@
                             >
                                 <div class="flex items-center gap-2 min-w-0">
                                     <PlayerAvatar :nickname="player.nickname" :avatar-url="player.avatar_url" size="sm" />
-                                    <span class="font-medium text-slate-800 dark:text-slate-200 truncate">{{ player.nickname }}</span>
+                                    <button
+                                        v-if="player.id === authStore.player?.id"
+                                        class="font-medium text-slate-800 dark:text-slate-200 truncate underline decoration-dotted underline-offset-2 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                                        @click="openNicknameDialog"
+                                    >
+                                        {{ player.nickname }}
+                                    </button>
+                                    <span v-else class="font-medium text-slate-800 dark:text-slate-200 truncate">{{ player.nickname }}</span>
                                     <span v-if="player.id === gameStore.currentGame?.host_player_id" class="text-xs text-yellow-600 dark:text-yellow-400">{{ t('lobby.host') }}</span>
                                     <span v-else-if="player.is_co_host" class="text-xs text-blue-500 dark:text-blue-400">{{ t('lobby.coHost') }}</span>
                                     <span v-else-if="player.is_bot" class="text-xs text-slate-400">{{ t('lobby.bot') }}</span>
@@ -685,6 +726,24 @@
             <Button :label="t('lobby.ban')" severity="danger" @click="confirmBan" />
         </div>
     </Dialog>
+    <Dialog v-model:visible="nicknameDialogVisible" :header="t('guest.changeNickname')" modal :style="{ width: '22rem' }">
+        <form @submit.prevent="submitNickname" class="space-y-4">
+            <div class="flex flex-col gap-2">
+                <label class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ t('guest.newNickname') }}</label>
+                <InputText
+                    ref="nicknameInputRef"
+                    v-model="newNickname"
+                    class="w-full"
+                    @keydown.enter.prevent="submitNickname"
+                />
+                <small v-if="nicknameError" class="text-red-500">{{ nicknameError }}</small>
+            </div>
+            <div class="flex justify-end gap-2">
+                <Button :label="t('common.cancel')" severity="secondary" variant="text" @click="nicknameDialogVisible = false" />
+                <Button type="submit" :label="t('common.save')" severity="success" :loading="nicknameLoading" />
+            </div>
+        </form>
+    </Dialog>
     <Dialog v-model:visible="passwordDialogVisible" :header="t('lobby.enterPassword')" modal :style="{ width: '24rem' }" :closable="false">
         <form @submit.prevent="handlePasswordSubmit" class="space-y-4">
             <p class="text-sm text-slate-600 dark:text-slate-400">{{ t('lobby.passwordRequired') }}</p>
@@ -899,6 +958,11 @@ const unreadCount = ref(0);
 const isEditing = ref(false);
 const submitCount = ref(0);
 const rematchLoading = ref(false);
+const nicknameDialogVisible = ref(false);
+const newNickname = ref('');
+const nicknameError = ref('');
+const nicknameLoading = ref(false);
+const nicknameInputRef = ref(null);
 const voteCount = ref(0);
 const banDialogVisible = ref(false);
 const banDialogPlayerId = ref(null);
@@ -936,6 +1000,9 @@ const passwordDialogVisible = ref(false);
 const gamePassword = ref('');
 const passwordError = ref('');
 const passwordLoading = ref(false);
+const showPasswordInput = ref(false);
+const inlinePassword = ref('');
+const inlinePasswordInput = ref(null);
 const isReady = ref(false);
 const allowReadyCheck = computed(() => gameStore.currentGame?.settings?.allow_ready_check ?? true);
 const maxEdits = computed(() => gameStore.currentGame?.settings?.max_edits ?? 0);
@@ -1388,6 +1455,42 @@ async function handleToggleCoHost(playerId) {
     }
 }
 
+function openNicknameDialog() {
+    newNickname.value = authStore.player?.nickname || '';
+    nicknameError.value = '';
+    nicknameDialogVisible.value = true;
+    setTimeout(() => {
+        nicknameInputRef.value?.$el?.focus();
+    }, 100);
+}
+
+async function submitNickname() {
+    const trimmed = newNickname.value.trim();
+    if (!trimmed) {
+        return;
+    }
+
+    nicknameLoading.value = true;
+    nicknameError.value = '';
+
+    try {
+        const { data } = await api.profile.updateNickname(trimmed);
+        authStore.player = { ...authStore.player, nickname: data.player.nickname };
+
+        // Update local player list immediately (own echo may not arrive)
+        const me = gameStore.players.find((p) => p.id === authStore.player.id);
+        if (me) {
+            me.nickname = data.player.nickname;
+        }
+
+        nicknameDialogVisible.value = false;
+    } catch (err) {
+        nicknameError.value = err.response?.data?.errors?.nickname?.[0] || err.response?.data?.message || t('common.error');
+    } finally {
+        nicknameLoading.value = false;
+    }
+}
+
 function canManagePlayer(player) {
     if (player.id === gameStore.currentGame?.host_player_id) return false;
     if (player.id === authStore.player?.id) return false;
@@ -1493,8 +1596,35 @@ async function handleToggleChat() {
 }
 
 async function handleToggleVisibility() {
+    const goingPrivate = gameStore.currentGame?.is_public;
     try {
         await gameStore.updateVisibility(props.code, !gameStore.currentGame?.is_public);
+        // If switching to private, show password input right away
+        if (goingPrivate) {
+            showPasswordInput.value = true;
+            inlinePassword.value = '';
+            nextTick(() => {
+                inlinePasswordInput.value?.focus();
+            });
+        } else {
+            showPasswordInput.value = false;
+        }
+    } catch (err) {
+        error.value = err.response?.data?.error || t('common.error');
+    }
+}
+
+async function handleSetPassword() {
+    if (inlinePassword.value.length < 4) {
+        return;
+    }
+    try {
+        await gameStore.updateSettings(props.code, {
+            settings: {},
+            password: inlinePassword.value,
+        });
+        showPasswordInput.value = false;
+        inlinePassword.value = '';
     } catch (err) {
         error.value = err.response?.data?.error || t('common.error');
     }
@@ -1654,6 +1784,9 @@ watch(phase, (newPhase, oldPhase) => {
         isReady.value = false;
         submitCount.value = 0;
         voteCount.value = 0;
+        nextTick(() => {
+            answerInput.value?.focus();
+        });
     }
     if (newPhase === 'finished' && oldPhase !== 'finished') {
         // Only celebrate if there's a clear winner (not a tie)
@@ -1681,6 +1814,15 @@ watch(phase, (newPhase, oldPhase) => {
             staggerRows(document.querySelector('.final-score-row')?.parentElement, '.final-score-row', 0.4);
         }
     });
+});
+
+// Focus the answer input when the page loads into the playing phase
+watch(loading, (isLoading) => {
+    if (!isLoading && phase.value === 'playing' && !gameStore.hasSubmittedAnswer) {
+        nextTick(() => {
+            answerInput.value?.focus();
+        });
+    }
 });
 
 onMounted(async () => {

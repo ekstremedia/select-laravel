@@ -27,7 +27,7 @@ class TwoFactorConfirmRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'code.size' => 'The verification code must be 6 digits.',
+            'code.size' => 'Verifiseringskoden må være 6 siffer.',
         ];
     }
 }

@@ -489,7 +489,7 @@ class ArchiveTest extends TestCase
         $response = $this->getJson('/api/v1/players/NonExistentPlayer');
 
         $response->assertStatus(404)
-            ->assertJson(['error' => 'Player not found']);
+            ->assertJson(['error' => 'Spilleren ble ikke funnet.']);
     }
 
     public function test_archive_show_returns_404_for_invalid_game(): void
@@ -632,7 +632,7 @@ class ArchiveTest extends TestCase
         $response = $this->getJson('/api/v1/players/GhostPlayer/stats');
 
         $response->assertStatus(404)
-            ->assertJson(['error' => 'Player not found']);
+            ->assertJson(['error' => 'Spilleren ble ikke funnet.']);
     }
 
     public function test_player_sentences_returns_sentences(): void
@@ -705,7 +705,7 @@ class ArchiveTest extends TestCase
         $response = $this->getJson('/api/v1/players/GhostPlayer/sentences');
 
         $response->assertStatus(404)
-            ->assertJson(['error' => 'Player not found']);
+            ->assertJson(['error' => 'Spilleren ble ikke funnet.']);
     }
 
     public function test_player_sentences_returns_empty_for_user_without_sentences(): void
@@ -791,7 +791,7 @@ class ArchiveTest extends TestCase
         $response = $this->getJson('/api/v1/players/GhostPlayer/games');
 
         $response->assertStatus(404)
-            ->assertJson(['error' => 'Player not found']);
+            ->assertJson(['error' => 'Spilleren ble ikke funnet.']);
     }
 
     public function test_player_games_returns_empty_for_user_without_games(): void

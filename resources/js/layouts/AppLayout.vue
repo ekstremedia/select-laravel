@@ -260,9 +260,9 @@ function openNicknameDialog() {
     nicknameError.value = '';
     showNicknameDialog.value = true;
     menuOpen.value = false;
-    nextTick(() => {
+    setTimeout(() => {
         nicknameInputRef.value?.$el?.focus();
-    });
+    }, 100);
 }
 
 async function submitNickname() {

@@ -54,7 +54,7 @@ class AdminController extends Controller
             ! empty($validated['ban_ip']) ? $request->ip() : null,
         );
 
-        return response()->json(['message' => 'Player has been banned.']);
+        return response()->json(['message' => 'Spilleren er utestengt.']);
     }
 
     public function unban(string $playerId, UnbanPlayerAction $action): JsonResponse
@@ -63,7 +63,7 @@ class AdminController extends Controller
 
         $action->execute($player);
 
-        return response()->json(['message' => 'Player has been unbanned.']);
+        return response()->json(['message' => 'Utestengelsen er opphevet.']);
     }
 
     public function stats(): JsonResponse

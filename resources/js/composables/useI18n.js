@@ -130,6 +130,7 @@ const translations = {
         'lobby.makeCoHost': 'Gjør til medvert',
         'lobby.removeCoHost': 'Fjern medvert',
         'lobby.settings': 'Innstillinger',
+        'lobby.noPlayers': 'Ingen spillere ennå',
 
         // Game
         'game.leave': 'Forlat',
@@ -172,6 +173,18 @@ const translations = {
         'game.enableChat': 'Slå på chat',
         'game.makePrivate': 'Gjør privat',
         'game.makePublic': 'Gjør offentlig',
+        'game.playerJoined': 'ble med',
+        'game.playerLeft': 'forlot spillet',
+        'game.nicknameChanged': 'skiftet navn til',
+        'game.chatEnabled': 'aktiverte chat',
+        'game.chatDisabled': 'deaktiverte chat',
+        'game.visibilityPublic': 'gjorde spillet offentlig',
+        'game.visibilityPrivate': 'gjorde spillet privat',
+        'game.passwordChanged': 'endret passordet',
+        'game.passwordChangedTo': 'satte passordet til:',
+        'game.setPassword': 'Sett passord',
+        'game.changePassword': 'Endre passord',
+        'game.passwordMinLength': 'Minst 4 tegn',
 
         // Archive
         'archive.title': 'Spillarkiv',
@@ -460,6 +473,7 @@ const translations = {
         'lobby.makeCoHost': 'Make co-host',
         'lobby.removeCoHost': 'Remove co-host',
         'lobby.settings': 'Settings',
+        'lobby.noPlayers': 'No players yet',
 
         // Game
         'game.leave': 'Leave',
@@ -502,6 +516,18 @@ const translations = {
         'game.enableChat': 'Enable chat',
         'game.makePrivate': 'Make private',
         'game.makePublic': 'Make public',
+        'game.playerJoined': 'joined',
+        'game.playerLeft': 'left the game',
+        'game.nicknameChanged': 'is now known as',
+        'game.chatEnabled': 'enabled chat',
+        'game.chatDisabled': 'disabled chat',
+        'game.visibilityPublic': 'made the game public',
+        'game.visibilityPrivate': 'made the game private',
+        'game.passwordChanged': 'changed the password',
+        'game.passwordChangedTo': 'set the password to:',
+        'game.setPassword': 'Set password',
+        'game.changePassword': 'Change password',
+        'game.passwordMinLength': 'At least 4 characters',
 
         // Archive
         'archive.title': 'Game Archive',

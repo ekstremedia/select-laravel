@@ -22,6 +22,10 @@ services:
     container_name: select-app
     restart: unless-stopped
     working_dir: /var/www
+    command: >
+      sh -c "chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache &&
+             chmod -R 775 /var/www/storage /var/www/bootstrap/cache &&
+             php-fpm"
     volumes:
       - .:/var/www
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini

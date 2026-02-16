@@ -120,7 +120,7 @@ class GameBanTest extends TestCase
             ->postJson("/api/v1/games/{$code}/ban/{$this->coHostPlayer->id}");
 
         $response->assertForbidden();
-        $response->assertJson(['error' => 'Only the host or co-host can ban players']);
+        $response->assertJson(['error' => 'Bare verten eller medverten kan utestenge spillere.']);
     }
 
     public function test_cannot_ban_host(): void
@@ -131,7 +131,7 @@ class GameBanTest extends TestCase
             ->postJson("/api/v1/games/{$code}/ban/{$this->hostPlayer->id}");
 
         $response->assertStatus(422);
-        $response->assertJson(['error' => 'Cannot ban the host']);
+        $response->assertJson(['error' => 'Kan ikke utestenge verten.']);
     }
 
     public function test_banned_player_cannot_rejoin(): void
@@ -194,7 +194,7 @@ class GameBanTest extends TestCase
             ->postJson("/api/v1/games/{$code}/ban/{$this->guestPlayer->id}");
 
         $response->assertStatus(422);
-        $response->assertJson(['error' => 'Cannot ban players from a finished game']);
+        $response->assertJson(['error' => 'Kan ikke utestenge spillere fra et avsluttet spill.']);
     }
 
     public function test_unban_only_works_in_lobby(): void
@@ -212,6 +212,6 @@ class GameBanTest extends TestCase
             ->postJson("/api/v1/games/{$code}/unban/{$this->guestPlayer->id}");
 
         $response->assertStatus(422);
-        $response->assertJson(['error' => 'Can only unban players in the lobby']);
+        $response->assertJson(['error' => 'Kan bare oppheve utestengelse i lobbyen.']);
     }
 }

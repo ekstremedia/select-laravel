@@ -47,12 +47,13 @@
                             <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400 tracking-widest shrink-0">
                                 #{{ game.code }}
                             </span>
+                            <PlayerAvatar :nickname="game.host_nickname" :avatar-url="game.host_avatar_url" size="xs" />
                             <span class="text-sm text-slate-500 dark:text-slate-400 truncate">
                                 {{ game.host_nickname }}
                             </span>
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0">
-                            <span v-if="game.has_password" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+                            <span v-if="!game.is_public" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" /></svg>
                             </span>
                             <Badge
@@ -110,12 +111,13 @@
                             <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400 tracking-widest shrink-0">
                                 #{{ game.code }}
                             </span>
+                            <PlayerAvatar :nickname="game.host_nickname" :avatar-url="game.host_avatar_url" size="xs" />
                             <span class="text-sm text-slate-500 dark:text-slate-400 truncate">
                                 {{ game.host_nickname }}
                             </span>
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0">
-                            <span v-if="game.has_password" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+                            <span v-if="!game.is_public" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" /></svg>
                             </span>
                             <Badge
@@ -186,6 +188,7 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 import Badge from 'primevue/badge';
+import PlayerAvatar from '../components/PlayerAvatar.vue';
 import { api } from '../services/api.js';
 import { useI18n } from '../composables/useI18n.js';
 

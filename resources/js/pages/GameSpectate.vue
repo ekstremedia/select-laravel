@@ -2,7 +2,10 @@
     <GameLayout
         :game-code="gameStore.gameCode || props.code"
         :player-count="gameStore.players.length"
-        :is-private="gameStore.currentGame?.has_password === true"
+        :max-players="gameStore.currentGame?.settings?.max_players ?? 8"
+        :players="gameStore.players"
+        :host-player-id="gameStore.currentGame?.host_player_id"
+        :is-private="gameStore.currentGame?.is_public === false"
         :leave-label="t('common.back')"
         @leave="router.visit('/spill')"
     >
@@ -295,7 +298,10 @@ const showJoinBar = computed(() => {
 
 async function handleJoin() {
     joinError.value = '';
-    if (gameStore.currentGame?.has_password) {
+    // Skip password if player is already in the game (rejoining)
+    const myId = authStore.player?.id;
+    const alreadyInGame = myId && gameStore.players.some(p => p.id === myId);
+    if (gameStore.currentGame?.has_password && !alreadyInGame) {
         password.value = '';
         showPasswordDialog.value = true;
         return;

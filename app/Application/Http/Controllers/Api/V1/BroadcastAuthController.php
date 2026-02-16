@@ -18,13 +18,13 @@ class BroadcastAuthController extends Controller
         $socketId = $request->input('socket_id');
 
         if (! $channelName || ! $socketId) {
-            return response()->json(['error' => 'Missing channel_name or socket_id'], 400);
+            return response()->json(['error' => 'Mangler channel_name eller socket_id.'], 400);
         }
 
         // Get player from guest token or authenticated user
         $player = $this->getPlayer($request, $getPlayerByToken);
         if (! $player) {
-            return response()->json(['error' => 'Unauthenticated'], 403);
+            return response()->json(['error' => 'Ikke autentisert.'], 403);
         }
 
         // Check if this is a presence-game channel
@@ -36,11 +36,11 @@ class BroadcastAuthController extends Controller
                 return response()->json($authData);
             }
 
-            return response()->json(['error' => 'Forbidden'], 403);
+            return response()->json(['error' => 'Ingen tilgang.'], 403);
         }
 
         // For other channels, deny by default
-        return response()->json(['error' => 'Unknown channel'], 403);
+        return response()->json(['error' => 'Ukjent kanal.'], 403);
     }
 
     private function getPlayer(Request $request, GetPlayerByTokenAction $getPlayerByToken): ?Player

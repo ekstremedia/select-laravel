@@ -32,13 +32,13 @@ class RoundController extends Controller
         $game = $getGame->execute($code);
 
         if (! $game) {
-            return response()->json(['error' => 'Game not found'], 404);
+            return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
         $round = $game->currentRoundModel();
 
         if (! $round) {
-            return response()->json(['error' => 'No active round'], 404);
+            return response()->json(['error' => 'Ingen aktiv runde.'], 404);
         }
 
         $response = [
@@ -196,7 +196,7 @@ class RoundController extends Controller
         $player = $request->attributes->get('player');
 
         if (! $round->game->isHostOrCoHost($player)) {
-            return response()->json(['error' => 'Only host or co-host can start voting'], 403);
+            return response()->json(['error' => 'Bare verten eller medverten kan starte avstemming.'], 403);
         }
 
         try {
@@ -228,7 +228,7 @@ class RoundController extends Controller
         $player = $request->attributes->get('player');
 
         if (! $round->game->isHostOrCoHost($player)) {
-            return response()->json(['error' => 'Only host or co-host can complete round'], 403);
+            return response()->json(['error' => 'Bare verten eller medverten kan fullføre runden.'], 403);
         }
 
         try {

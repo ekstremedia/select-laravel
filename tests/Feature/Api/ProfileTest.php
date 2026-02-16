@@ -128,7 +128,7 @@ class ProfileTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Account deleted successfully.']);
+            ->assertJson(['message' => 'Kontoen er slettet.']);
 
         // Verify user and player are deleted
         $this->assertDatabaseMissing('users', ['id' => $userId]);
@@ -159,7 +159,7 @@ class ProfileTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Password updated successfully.']);
+            ->assertJson(['message' => 'Passordet er oppdatert.']);
 
         // Verify new password works
         $user->refresh();

@@ -74,7 +74,7 @@ class AuthLoginTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJson([
-                'error' => 'Your account has been banned.',
+                'error' => 'Kontoen din er utestengt.',
                 'reason' => 'Cheating',
             ]);
     }
@@ -143,6 +143,6 @@ class AuthLoginTest extends TestCase
         ])->postJson('/api/v1/auth/logout');
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Logged out successfully']);
+            ->assertJson(['message' => 'Logget ut.']);
     }
 }

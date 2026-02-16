@@ -133,6 +133,27 @@ class BotFeatureTest extends TestCase
         $this->assertFalse($players[0]['is_bot']);
     }
 
+    public function test_host_can_add_bot_to_password_protected_game(): void
+    {
+        $createResponse = $this->withHeaders($this->adminHeaders())
+            ->postJson('/api/v1/games', [
+                'is_public' => false,
+                'password' => 'secret123',
+            ]);
+
+        $createResponse->assertStatus(201);
+        $code = $createResponse->json('game.code');
+
+        // Add a bot — should succeed despite password protection
+        $response = $this->withHeaders($this->adminHeaders())
+            ->postJson("/api/v1/games/{$code}/add-bot");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure(['player' => ['id', 'nickname', 'is_bot']]);
+
+        $this->assertTrue($response->json('player.is_bot'));
+    }
+
     public function test_bot_players_appear_in_game_show_endpoint(): void
     {
         $createResponse = $this->withHeaders($this->adminHeaders())
