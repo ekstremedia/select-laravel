@@ -2,11 +2,13 @@
 
 A real-time multiplayer acronym sentence game. Players get a random acronym and race to create the funniest sentence where each word starts with the corresponding letter. Then everyone votes for their favorite.
 
-Originally an IRC game from **#select** on EFnet, now reimagined for the web with Laravel 12, Vue 3, and WebSockets.
+Originally created by **pureblade** as an IRC game on **#select** (EFnet), now reimagined for the web with Laravel, Vue, and WebSockets.
+
+Play online at **[select.huske.app](https://select.huske.app)**
 
 ## Getting Started
 
-You need [Docker](https://docs.docker.com/get-docker/) and [Node.js](https://nodejs.org/) with [Yarn](https://yarnpkg.com/) installed.
+You need [Docker](https://docs.docker.com/get-docker/) and [Node.js](https://nodejs.org/) installed.
 
 **1. Clone and configure**
 
@@ -42,8 +44,9 @@ This builds and starts all containers. On first run, the setup container automat
 **4. Build the frontend**
 
 ```bash
-yarn install
-yarn build
+npm install && npm run build
+# or
+yarn install && yarn build
 ```
 
 **5. Open the app**
@@ -65,7 +68,9 @@ The entire application runs inside Docker. All backend services start with a sin
 | delectus | Game orchestrator daemon | - |
 | setup | First-run setup (exits after completion) | - |
 
-Frontend assets are built on the host machine with Yarn and served by nginx from `public/build/`.
+Frontend assets are built on the host machine and served by nginx from `public/build/`.
+
+For a deep dive into the game loop, domain design, API endpoints, WebSocket events, and database schema, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## Common Commands
 
@@ -100,8 +105,9 @@ a tinker         # php artisan tinker
 ### Frontend
 
 ```bash
-yarn dev          # Development server with hot reload
-yarn build        # Production build
+npm run dev       # Development server with hot reload
+npm run build     # Production build
+# or use yarn: yarn dev / yarn build
 ```
 
 ## Running Tests
@@ -138,36 +144,13 @@ To change ports, edit `.env` and restart: `docker compose down && docker compose
 - **Frontend:** Vue 3, Inertia.js v2, PrimeVue v4, Tailwind CSS v4
 - **Infrastructure:** Docker, nginx, OPcache with JIT
 
-## Project Structure
-
-```
-app/
-├── Domain/              # Business logic (DDD)
-│   ├── Delectus/        # Game orchestrator daemon
-│   ├── Game/            # Game management, scoring
-│   ├── Player/          # Auth, guest tokens, bots
-│   └── Round/           # Acronyms, answers, votes
-├── Application/         # HTTP controllers, events, jobs
-└── Infrastructure/      # Eloquent models
-
-resources/js/
-├── pages/               # Vue page components
-├── composables/         # Shared logic (i18n, dark mode, animations)
-├── stores/              # Pinia state management
-└── services/            # API client, WebSocket
-
-database/                # Migrations, factories, seeders
-docker/                  # Docker config (nginx, PHP, setup script)
-sql/                     # Legacy data imports
-```
-
 ## Production Deployment
 
 For production, use a reverse proxy (Apache or nginx) with SSL termination pointing to the Docker containers:
 
 ```
-Client → Apache/nginx (SSL) → Docker nginx (:8000) → PHP-FPM
-                             → Docker Reverb (:8080) for WebSockets
+Client -> Apache/nginx (SSL) -> Docker nginx (:8000) -> PHP-FPM
+                              -> Docker Reverb (:8080) for WebSockets
 ```
 
 Key `.env` changes for production:
