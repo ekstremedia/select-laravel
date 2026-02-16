@@ -33,13 +33,14 @@ class RoundCompletedBroadcast implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         $scores = $this->game->gamePlayers()
-            ->with('player')
+            ->with('player.user')
             ->orderByDesc('score')
             ->get()
             ->map(fn ($gp) => [
                 'player_id' => $gp->player_id,
                 'player_name' => $gp->player?->nickname ?? 'Unknown',
                 'score' => $gp->score,
+                'avatar_url' => $gp->player?->user?->gravatarUrl(64),
             ]);
 
         return [

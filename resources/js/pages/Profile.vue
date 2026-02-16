@@ -18,9 +18,8 @@
         <template v-else-if="profile">
             <!-- Player header -->
             <div class="flex items-center gap-4 mb-8">
-                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                    {{ profile.nickname?.charAt(0)?.toUpperCase() }}
-                </div>
+                <PlayerAvatar :nickname="profile.nickname" :avatar-url="profile.avatar_url" size="lg" class="sm:hidden" />
+                <PlayerAvatar :nickname="profile.nickname" :avatar-url="profile.avatar_url" size="xl" class="hidden sm:inline-flex" />
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-3">
                         <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-200 truncate">
@@ -132,6 +131,7 @@ import Button from 'primevue/button';
 import TabView from 'primevue/tabview';
 import TabPanel from 'primevue/tabpanel';
 import Badge from 'primevue/badge';
+import PlayerAvatar from '../components/PlayerAvatar.vue';
 import { api } from '../services/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useI18n } from '../composables/useI18n.js';

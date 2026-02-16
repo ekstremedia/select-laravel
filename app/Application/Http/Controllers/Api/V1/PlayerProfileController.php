@@ -57,7 +57,7 @@ class PlayerProfileController extends Controller
 
             $playerInfo = [
                 'nickname' => $user->nickname,
-                'avatar_url' => $user->avatar_url,
+                'avatar_url' => $user->gravatarUrl(160),
                 'member_since' => $user->created_at?->toIso8601String(),
                 'is_bot' => false,
                 'is_guest' => false,

@@ -76,6 +76,13 @@ class User extends Authenticatable
             && $this->two_factor_confirmed_at !== null;
     }
 
+    public function gravatarUrl(int $size = 80): string
+    {
+        $hash = md5(strtolower(trim($this->email)));
+
+        return "https://www.gravatar.com/avatar/{$hash}?s={$size}&d=404";
+    }
+
     public function sendPasswordResetNotification($token): void
     {
         $url = config('app.url').'/nytt-passord/'.$token.'?email='.urlencode($this->email);

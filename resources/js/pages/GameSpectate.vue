@@ -84,9 +84,7 @@
                                 class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
                             >
                                 <div class="flex items-center gap-2">
-                                    <div class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                                        {{ player.nickname?.charAt(0)?.toUpperCase() }}
-                                    </div>
+                                    <PlayerAvatar :nickname="player.nickname" :avatar-url="player.avatar_url" size="sm" />
                                     <span class="font-medium text-slate-800 dark:text-slate-200">{{ player.nickname }}</span>
                                 </div>
                                 <Badge v-if="player.id === gameStore.currentGame?.host_player_id" :value="t('lobby.host')" severity="success" />
@@ -245,6 +243,7 @@ import ProgressBar from 'primevue/progressbar';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import GameLayout from '../layouts/GameLayout.vue';
+import PlayerAvatar from '../components/PlayerAvatar.vue';
 import { useGameStore } from '../stores/gameStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useI18n } from '../composables/useI18n.js';

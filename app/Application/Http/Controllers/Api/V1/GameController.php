@@ -920,13 +920,14 @@ class GameController extends Controller
 
     private function formatGame($game): array
     {
-        $players = $game->activePlayers()->get()->map(fn ($p) => [
+        $players = $game->activePlayers()->with('user')->get()->map(fn ($p) => [
             'id' => $p->id,
             'nickname' => $p->nickname,
             'score' => $p->pivot->score,
             'is_host' => $p->id === $game->host_player_id,
             'is_co_host' => (bool) $p->pivot->is_co_host,
             'is_bot' => (bool) $p->is_bot,
+            'avatar_url' => $p->user?->gravatarUrl(64),
         ]);
 
         $result = [

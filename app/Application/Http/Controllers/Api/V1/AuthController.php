@@ -250,6 +250,7 @@ class AuthController extends Controller
                 'name' => $request->user()->name,
                 'email' => $request->user()->email,
                 'role' => $request->user()->role,
+                'gravatar_url' => $request->user()->gravatarUrl(),
             ];
         }
 

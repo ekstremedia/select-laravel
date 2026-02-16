@@ -4,6 +4,7 @@ namespace App\Application\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Infrastructure\Models\HallOfFame;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,11 +24,17 @@ class HallOfFameController extends Controller
 
         $entries = $query->paginate(30);
 
+        // Batch-load users for gravatar URLs
+        $userIds = $entries->getCollection()->pluck('author_user_id')->filter()->unique();
+        $users = User::whereIn('id', $userIds)->get(['id', 'email'])->keyBy('id');
+
         $entries->getCollection()->transform(fn ($entry) => [
             'id' => $entry->id,
             'acronym' => $entry->acronym,
             'sentence' => $entry->sentence,
             'author_nickname' => $entry->author_nickname,
+            'player_nickname' => $entry->author_nickname,
+            'avatar_url' => $entry->author_user_id ? $users->get($entry->author_user_id)?->gravatarUrl(48) : null,
             'votes_count' => $entry->votes_count,
             'voter_nicknames' => $entry->voter_nicknames,
             'game_code' => $entry->game_code,

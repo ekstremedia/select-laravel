@@ -11,7 +11,7 @@ class ScoringService
     public function calculateRoundScores(Round $round): array
     {
         $results = [];
-        $answers = $round->answers()->with('player', 'votes.voter')->get();
+        $answers = $round->answers()->with('player.user', 'votes.voter')->get();
 
         foreach ($answers as $answer) {
             $points = $answer->votes_count;
@@ -28,6 +28,7 @@ class ScoringService
             $results[] = [
                 'player_id' => $answer->player_id,
                 'player_name' => $answer->author_nickname ?? $answer->player?->nickname ?? 'Unknown',
+                'avatar_url' => $answer->player?->user?->gravatarUrl(64),
                 'answer' => $answer->text,
                 'votes' => $answer->votes_count,
                 'points_earned' => $points,
@@ -47,7 +48,7 @@ class ScoringService
     public function getFinalScores(Game $game): array
     {
         $gamePlayers = $game->gamePlayers()
-            ->with('player')
+            ->with('player.user')
             ->orderByDesc('score')
             ->get();
 
@@ -62,6 +63,7 @@ class ScoringService
                 'rank' => $rank,
                 'player_id' => $gp->player_id,
                 'player_name' => $gp->player?->nickname ?? 'Unknown',
+                'avatar_url' => $gp->player?->user?->gravatarUrl(64),
                 'score' => $gp->score,
                 'is_winner' => $rank === 1 && ! $tiedAtTop,
             ];

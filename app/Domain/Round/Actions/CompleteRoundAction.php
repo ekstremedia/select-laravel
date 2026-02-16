@@ -66,9 +66,10 @@ class CompleteRoundAction
      */
     public function getScoresWithoutVoting(Round $round): array
     {
-        return $round->answers()->with('player')->get()->map(fn ($answer) => [
+        return $round->answers()->with('player.user')->get()->map(fn ($answer) => [
             'player_id' => $answer->player_id,
             'player_name' => $answer->author_nickname ?? $answer->player?->nickname ?? 'Unknown',
+            'avatar_url' => $answer->player?->user?->gravatarUrl(64),
             'answer' => $answer->text,
             'votes' => 0,
             'points_earned' => 0,

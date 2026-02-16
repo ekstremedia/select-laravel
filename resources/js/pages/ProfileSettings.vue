@@ -2,9 +2,7 @@
     <div class="max-w-2xl mx-auto px-4 py-8 sm:py-12">
         <!-- User header -->
         <div class="flex items-center gap-4 mb-10">
-            <div class="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-2xl font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                {{ authStore.nickname?.charAt(0)?.toUpperCase() }}
-            </div>
+            <PlayerAvatar :nickname="authStore.nickname" :avatar-url="authStore.user?.gravatar_url" size="lg" />
             <div class="min-w-0">
                 <h1 class="text-2xl font-bold text-slate-800 dark:text-slate-200 truncate">
                     {{ authStore.nickname }}
@@ -221,6 +219,7 @@ import Password from 'primevue/password';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Dialog from 'primevue/dialog';
+import PlayerAvatar from '../components/PlayerAvatar.vue';
 import { useAuthStore } from '../stores/authStore.js';
 import { useI18n } from '../composables/useI18n.js';
 import { api } from '../services/api.js';

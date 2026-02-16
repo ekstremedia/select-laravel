@@ -19,7 +19,7 @@ class LeaderboardController extends Controller
         }
 
         $stats = PlayerStat::query()
-            ->with('user:id,nickname')
+            ->with('user:id,nickname,email')
             ->where('games_played', '>', 0)
             ->orderByDesc($sortBy)
             ->limit(50)
@@ -27,6 +27,7 @@ class LeaderboardController extends Controller
             ->map(fn ($stat, $index) => [
                 'rank' => $index + 1,
                 'nickname' => $stat->user?->nickname ?? 'Unknown',
+                'avatar_url' => $stat->user?->gravatarUrl(48),
                 'games_played' => $stat->games_played,
                 'games_won' => $stat->games_won,
                 'win_rate' => $stat->win_rate,

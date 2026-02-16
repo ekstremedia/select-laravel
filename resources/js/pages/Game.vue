@@ -154,6 +154,7 @@
                                 class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
                             >
                                 <div class="flex items-center gap-2 min-w-0">
+                                    <PlayerAvatar :nickname="player.nickname" :avatar-url="player.avatar_url" size="sm" />
                                     <span class="font-medium text-slate-800 dark:text-slate-200 truncate">{{ player.nickname }}</span>
                                     <span v-if="player.id === gameStore.currentGame?.host_player_id" class="text-xs text-yellow-600 dark:text-yellow-400">{{ t('lobby.host') }}</span>
                                     <span v-else-if="player.is_co_host" class="text-xs text-blue-500 dark:text-blue-400">{{ t('lobby.coHost') }}</span>
@@ -457,7 +458,10 @@
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
                                         <p class="select-none font-medium text-slate-800 dark:text-slate-200 break-words">{{ (result.answer || result.text)?.toLowerCase() }}</p>
-                                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ result.player_name || result.player_nickname }}</p>
+                                        <div class="flex items-center gap-1.5 mt-1">
+                                            <PlayerAvatar :nickname="result.player_name || result.player_nickname" :avatar-url="result.avatar_url" size="xs" />
+                                            <p class="text-sm text-slate-500 dark:text-slate-400">{{ result.player_name || result.player_nickname }}</p>
+                                        </div>
                                     </div>
                                     <div class="text-right shrink-0">
                                         <p class="text-sm font-bold text-emerald-600 dark:text-emerald-400">{{ result.votes ?? result.votes_count ?? 0 }} {{ t('game.votes') }}</p>
@@ -477,7 +481,10 @@
                                     :key="score.player_id"
                                     class="score-row flex items-center justify-between select-none"
                                 >
-                                    <span class="text-sm text-slate-700 dark:text-slate-300">{{ score.player_name || score.nickname }}</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <PlayerAvatar :nickname="score.player_name || score.nickname" :avatar-url="score.avatar_url" size="xs" />
+                                        <span class="text-sm text-slate-700 dark:text-slate-300">{{ score.player_name || score.nickname }}</span>
+                                    </div>
                                     <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400">{{ score.score }} {{ t('game.points') }}</span>
                                 </div>
                             </div>
@@ -535,6 +542,7 @@
                                         <span class="text-sm font-bold w-5" :class="getFinalRankClass(i)">
                                             {{ getFinalRankLabel(i) }}
                                         </span>
+                                        <PlayerAvatar :nickname="score.player_name || score.nickname" :avatar-url="score.avatar_url" size="xs" />
                                         <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ score.player_name || score.nickname }}</span>
                                     </div>
                                     <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400">{{ score.score }}</span>
@@ -849,6 +857,7 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import { useConfirm } from 'primevue/useconfirm';
 import confetti from 'canvas-confetti';
 import GameLayout from '../layouts/GameLayout.vue';
+import PlayerAvatar from '../components/PlayerAvatar.vue';
 import { useGameStore } from '../stores/gameStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useI18n } from '../composables/useI18n.js';

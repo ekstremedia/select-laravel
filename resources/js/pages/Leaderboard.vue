@@ -43,8 +43,9 @@
                 <template #body="{ data }">
                     <Link
                         :href="`/profil/${data.nickname}`"
-                        class="font-medium text-slate-800 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400"
+                        class="inline-flex items-center gap-2 font-medium text-slate-800 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400"
                     >
+                        <PlayerAvatar :nickname="data.nickname" :avatar-url="data.avatar_url" size="xs" />
                         {{ data.nickname }}
                     </Link>
                 </template>
@@ -73,6 +74,7 @@ import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import PlayerAvatar from '../components/PlayerAvatar.vue';
 import { api } from '../services/api.js';
 import { useI18n } from '../composables/useI18n.js';
 

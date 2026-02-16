@@ -288,7 +288,7 @@ export const useGameStore = defineStore('game', () => {
             // Rebuild scores from player list
             if (!scores.value.length) {
                 scores.value = (data.game.players || [])
-                    .map(p => ({ player_id: p.id, nickname: p.nickname, player_name: p.nickname, score: p.score ?? 0 }))
+                    .map(p => ({ player_id: p.id, nickname: p.nickname, player_name: p.nickname, score: p.score ?? 0, avatar_url: p.avatar_url }))
                     .sort((a, b) => b.score - a.score);
             }
             // Between-rounds timer for page-load recovery only
@@ -306,7 +306,7 @@ export const useGameStore = defineStore('game', () => {
             // Build scores from players if not already set
             if (!scores.value.length) {
                 scores.value = (data.game.players || [])
-                    .map(p => ({ player_id: p.id, nickname: p.nickname, player_name: p.nickname, score: p.score ?? 0 }))
+                    .map(p => ({ player_id: p.id, nickname: p.nickname, player_name: p.nickname, score: p.score ?? 0, avatar_url: p.avatar_url }))
                     .sort((a, b) => b.score - a.score);
             }
         }

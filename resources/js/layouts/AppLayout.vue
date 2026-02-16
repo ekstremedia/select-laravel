@@ -49,8 +49,9 @@
                             <Link
                                 v-if="!isGuest"
                                 :href="`/profil/${authNickname}`"
-                                class="px-3 py-1 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+                                class="flex items-center gap-1.5 px-3 py-1 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
                             >
+                                <PlayerAvatar :nickname="authNickname" :avatar-url="authStore.user?.gravatar_url" size="xs" />
                                 {{ authNickname }}
                             </Link>
                             <button
@@ -234,6 +235,7 @@ import InputText from 'primevue/inputtext';
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Dialog from 'primevue/dialog';
+import PlayerAvatar from '../components/PlayerAvatar.vue';
 import { useAuthStore } from '../stores/authStore.js';
 import { useI18n } from '../composables/useI18n.js';
 import { useDarkMode } from '../composables/useDarkMode.js';

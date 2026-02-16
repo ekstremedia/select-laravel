@@ -44,8 +44,9 @@
                 <div class="flex items-center justify-between">
                     <Link
                         :href="`/profil/${sentence.player_nickname}`"
-                        class="text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
+                        class="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
                     >
+                        <PlayerAvatar :nickname="sentence.player_nickname" :avatar-url="sentence.avatar_url" size="xs" />
                         {{ sentence.player_nickname }}
                     </Link>
                     <span v-if="sentence.game_code" class="text-xs text-slate-400">
@@ -109,6 +110,7 @@ import { Link } from '@inertiajs/vue3';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 import Badge from 'primevue/badge';
+import PlayerAvatar from '../components/PlayerAvatar.vue';
 import { api } from '../services/api.js';
 import { useI18n } from '../composables/useI18n.js';
 
