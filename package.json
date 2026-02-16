@@ -1,12 +1,16 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
+    "version": "1.0.1",
     "type": "module",
     "scripts": {
         "build": "vite build",
         "dev": "vite",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "version:patch": "yarn version --patch --no-git-tag-version",
+        "version:minor": "yarn version --minor --no-git-tag-version",
+        "version:major": "yarn version --major --no-git-tag-version"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
