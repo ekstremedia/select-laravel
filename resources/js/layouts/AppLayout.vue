@@ -197,29 +197,29 @@
         <Toast />
         <ConfirmDialog />
 
-        <!-- Guest nickname change dialog -->
+        <!-- Nickname change dialog -->
         <Dialog
-            v-model:visible="showNicknameDialog"
+            v-model:visible="nicknameDialog.visible.value"
             :header="t('guest.changeNickname')"
             modal
             :style="{ width: '22rem' }"
         >
-            <form @submit.prevent="submitNickname" class="space-y-4">
+            <form @submit.prevent="nicknameDialog.submit" class="space-y-4">
                 <div class="flex flex-col gap-2">
                     <label class="text-sm font-medium text-slate-700 dark:text-slate-300">
                         {{ t('guest.newNickname') }}
                     </label>
                     <InputText
-                        ref="nicknameInputRef"
-                        v-model="newNickname"
+                        :ref="(el) => { nicknameDialog.inputRef.value = el; }"
+                        v-model="nicknameDialog.newNickname.value"
                         class="w-full"
-                        @keydown.enter.prevent="submitNickname"
+                        @keydown.enter.prevent="nicknameDialog.submit"
                     />
-                    <small v-if="nicknameError" class="text-red-500">{{ nicknameError }}</small>
+                    <small v-if="nicknameDialog.error.value" class="text-red-500">{{ nicknameDialog.error.value }}</small>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <Button :label="t('common.cancel')" severity="secondary" variant="text" @click="showNicknameDialog = false" />
-                    <Button type="submit" :label="t('common.save')" severity="success" :loading="nicknameLoading" />
+                    <Button :label="t('common.cancel')" severity="secondary" variant="text" @click="nicknameDialog.close" />
+                    <Button type="submit" :label="t('common.save')" severity="success" :loading="nicknameDialog.loading.value" />
                 </div>
             </form>
         </Dialog>
@@ -239,7 +239,7 @@ import PlayerAvatar from '../components/PlayerAvatar.vue';
 import { useAuthStore } from '../stores/authStore.js';
 import { useI18n } from '../composables/useI18n.js';
 import { useDarkMode } from '../composables/useDarkMode.js';
-import { api } from '../services/api.js';
+import { useNicknameDialog } from '../composables/useNicknameDialog.js';
 
 const authStore = useAuthStore();
 const { isAuthenticated, isGuest, isAdmin, nickname: authNickname } = storeToRefs(authStore);
@@ -248,43 +248,12 @@ const { isDark, toggleDark } = useDarkMode();
 
 const menuOpen = ref(false);
 
-// Guest nickname change
-const showNicknameDialog = ref(false);
-const newNickname = ref('');
-const nicknameError = ref('');
-const nicknameLoading = ref(false);
-const nicknameInputRef = ref(null);
+// Nickname change dialog
+const nicknameDialog = useNicknameDialog();
 
 function openNicknameDialog() {
-    newNickname.value = authStore.nickname || '';
-    nicknameError.value = '';
-    showNicknameDialog.value = true;
     menuOpen.value = false;
-    setTimeout(() => {
-        const el = nicknameInputRef.value?.$el;
-        if (el) {
-            if (el.tagName === 'INPUT') el.focus();
-            else el.querySelector?.('input')?.focus();
-        }
-    }, 350);
-}
-
-async function submitNickname() {
-    const trimmed = newNickname.value.trim();
-    if (!trimmed) return;
-
-    nicknameLoading.value = true;
-    nicknameError.value = '';
-
-    try {
-        const { data } = await api.profile.updateNickname(trimmed);
-        authStore.player = { ...authStore.player, nickname: data.player.nickname };
-        showNicknameDialog.value = false;
-    } catch (err) {
-        nicknameError.value = err.response?.data?.message || err.response?.data?.errors?.nickname?.[0] || t('common.error');
-    } finally {
-        nicknameLoading.value = false;
-    }
+    nicknameDialog.open();
 }
 
 const page = usePage();

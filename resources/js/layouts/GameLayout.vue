@@ -171,7 +171,7 @@
                         </button>
                         <button
                             class="settings-item flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300"
-                            @click="openNicknameDialog(); closeSettings()"
+                            @click="nicknameDialog.open(); closeSettings()"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             {{ t('guest.changeNickname') }}
@@ -189,29 +189,29 @@
             </div>
         </Teleport>
 
-        <!-- Guest nickname change dialog -->
+        <!-- Nickname change dialog -->
         <Dialog
-            v-model:visible="showNicknameDialog"
+            v-model:visible="nicknameDialog.visible.value"
             :header="t('guest.changeNickname')"
             modal
             :style="{ width: '22rem' }"
         >
-            <form @submit.prevent="submitNickname" class="space-y-4">
+            <form @submit.prevent="nicknameDialog.submit" class="space-y-4">
                 <div class="flex flex-col gap-2">
                     <label class="text-sm font-medium text-slate-700 dark:text-slate-300">
                         {{ t('guest.newNickname') }}
                     </label>
                     <InputText
-                        ref="nicknameInputRef"
-                        v-model="newNickname"
+                        :ref="(el) => { nicknameDialog.inputRef.value = el; }"
+                        v-model="nicknameDialog.newNickname.value"
                         class="w-full"
-                        @keydown.enter.prevent="submitNickname"
+                        @keydown.enter.prevent="nicknameDialog.submit"
                     />
-                    <small v-if="nicknameError" class="text-red-500">{{ nicknameError }}</small>
+                    <small v-if="nicknameDialog.error.value" class="text-red-500">{{ nicknameDialog.error.value }}</small>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <Button :label="t('common.cancel')" severity="secondary" variant="text" @click="showNicknameDialog = false" />
-                    <Button type="submit" :label="t('common.save')" severity="success" :loading="nicknameLoading" />
+                    <Button :label="t('common.cancel')" severity="secondary" variant="text" @click="nicknameDialog.close" />
+                    <Button type="submit" :label="t('common.save')" severity="success" :loading="nicknameDialog.loading.value" />
                 </div>
             </form>
         </Dialog>
@@ -258,7 +258,7 @@ import { useI18n } from '../composables/useI18n.js';
 import { useDarkMode } from '../composables/useDarkMode.js';
 import { useGameStore } from '../stores/gameStore.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { api } from '../services/api.js';
+import { useNicknameDialog } from '../composables/useNicknameDialog.js';
 
 const { viewportHeight } = useViewport();
 const { t, toggleLocale } = useI18n();
@@ -369,58 +369,57 @@ function openSettings() {
     settingsOpen.value = true;
     settingsVisible.value = true;
     measureHeader();
+    nextTick(() => {
+        if (!settingsRef.value) return;
+        const items = settingsRef.value.querySelectorAll('.settings-item');
+        gsap.fromTo(
+            settingsRef.value,
+            { height: 0, opacity: 0 },
+            { height: 'auto', opacity: 1, duration: 0.25, ease: 'power2.out' },
+        );
+        gsap.fromTo(
+            items,
+            { opacity: 0, x: 8 },
+            { opacity: 1, x: 0, duration: 0.25, stagger: 0.04, ease: 'power2.out', delay: 0.08 },
+        );
+    });
 }
 
 function closeSettings() {
-    settingsOpen.value = false;
-    settingsVisible.value = false;
-}
-
-// Guest nickname change
-const showNicknameDialog = ref(false);
-const newNickname = ref('');
-const nicknameError = ref('');
-const nicknameLoading = ref(false);
-const nicknameInputRef = ref(null);
-
-function openNicknameDialog() {
-    newNickname.value = authStore.player?.nickname || '';
-    nicknameError.value = '';
-    showNicknameDialog.value = true;
-    setTimeout(() => {
-        const el = nicknameInputRef.value?.$el;
-        if (el) {
-            if (el.tagName === 'INPUT') el.focus();
-            else el.querySelector?.('input')?.focus();
-        }
-    }, 350);
-}
-
-async function submitNickname() {
-    const trimmed = newNickname.value.trim();
-    if (!trimmed) return;
-
-    nicknameLoading.value = true;
-    nicknameError.value = '';
-
-    try {
-        const { data } = await api.profile.updateNickname(trimmed);
-        authStore.player = { ...authStore.player, nickname: data.player.nickname };
-
-        // Update local player list immediately
-        const me = gameStore.players.find((p) => p.id === authStore.player.id);
-        if (me) {
-            me.nickname = data.player.nickname;
-        }
-
-        showNicknameDialog.value = false;
-        emit('nickname-changed', data.player.nickname);
-    } catch (err) {
-        nicknameError.value = err.response?.data?.errors?.nickname?.[0] || err.response?.data?.message || t('common.error');
-    } finally {
-        nicknameLoading.value = false;
+    if (!settingsRef.value) {
+        settingsOpen.value = false;
+        settingsVisible.value = false;
+        return;
     }
+    const items = settingsRef.value.querySelectorAll('.settings-item');
+    gsap.to(items, {
+        opacity: 0,
+        x: 8,
+        duration: 0.15,
+        stagger: 0.02,
+        ease: 'power2.in',
+    });
+    gsap.to(settingsRef.value, {
+        height: 0,
+        opacity: 0,
+        duration: 0.2,
+        ease: 'power2.in',
+        delay: 0.05,
+        onComplete: () => {
+            settingsOpen.value = false;
+            settingsVisible.value = false;
+        },
+    });
 }
+
+// Nickname change dialog
+const nicknameDialog = useNicknameDialog({
+    onSuccess: (player) => {
+        const me = gameStore.players.find((p) => p.id === authStore.player.id);
+        if (me) me.nickname = player.nickname;
+        emit('nickname-changed', player.nickname);
+    },
+});
 
 // Player management (kick/ban/unban)
 const myPlayerId = computed(() => authStore.player?.id);

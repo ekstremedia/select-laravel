@@ -177,8 +177,12 @@ export const useGameStore = defineStore('game', () => {
         players.value = players.value.filter(p => p.id !== data.player_id);
         // Refresh game to keep state in sync
         if (currentGame.value) {
-            const refreshed = await api.games.get(code);
-            currentGame.value = refreshed.data.game;
+            try {
+                const refreshed = await api.games.get(code);
+                currentGame.value = refreshed.data.game;
+            } catch (e) {
+                console.warn('Failed to refresh game state after kick:', e);
+            }
         }
         return data;
     }
@@ -189,8 +193,12 @@ export const useGameStore = defineStore('game', () => {
         players.value = players.value.filter(p => p.id !== data.player_id);
         // Refresh game to update banned_players list
         if (currentGame.value) {
-            const refreshed = await api.games.get(code);
-            currentGame.value = refreshed.data.game;
+            try {
+                const refreshed = await api.games.get(code);
+                currentGame.value = refreshed.data.game;
+            } catch (e) {
+                console.warn('Failed to refresh game state after ban:', e);
+            }
         }
         return data;
     }
