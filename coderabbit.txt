@@ -1,0 +1,1885 @@
+mail.
+
+Proposed fix
+         $token = $player->user->createToken('api')->plainTextToken;
+ 
++        Mail::to($player->user)->send(new WelcomeMail($player->user));
++
+         return response()->json([
+website/resources/js/composables/useI18n.js (1)
+622-625: ⚠️ Potential issue | 🟡 Minor
+
+t() lacks native placeholder interpolation—all call sites manually use .replace().
+
+The t() function does not support interpolation, and translation keys like 'lobby.kickConfirm' contain placeholders ({name}, {count}, {n}). However, all existing usages handle this correctly by chaining .replace() on the returned string:
+
+t('auth.gameWithPlayers').replace('{count}', gamePreview.player_count) (Login.vue, Register.vue)
+t('lobby.kickConfirm').replace('{name}', nickname) (Game.vueActionable comments posted: 6
+
+Note
+
+Due to the large number of review comments, Critical, Major severity comments were prioritized as inline comments.
+
+Caution
+
+Some comments are outside the diff and can’t be posted inline due to platform limitations.
+
+⚠️ Outside diff range comments (5)
+website/app/Application/Http/Controllers/Api/V1/AuthController.php (1)
+187-221: ⚠️ Potential issue | 🟡 Minor
+
+convert() doesn't send WelcomeMail, unlike the equivalent path in register().
+
+The register() method sends a WelcomeMail when converting a guest via guest_token (line 61), but convert() performs the same ConvertGuestToUserAction without sending the welcome email. This looks like an oversight — new users converted through this endpoint won't receive a welcome e)
+t('lobby.banConfirm').replace('{name}', banDialogNickname) (Game.vue)
+t('lobby.inviteLimit').replace('{n}', invitesRemaining) (Game.vue)
+This pattern works but is verbose. Consider adding interpolation support directly to t() to simplify call sites and reduce the chance of missing replacements in future code.
+
+website/app/Application/Http/Controllers/Api/V1/ArchiveController.php (1)
+36-37: ⚠️ Potential issue | 🟡 Minor
+
+rounds_played and rounds_count map to the same value.
+
+Both keys return $result->rounds_played. If rounds_count is a legacy alias, consider adding a comment; otherwise remove the duplicate to avoid confusion.
+
+website/app/Domain/Round/Actions/SubmitVoteAction.php (1)
+46-63: ⚠️ Potential issue | 🟡 Minor
+
+Voting for the same answer still counts as a "change" and burns a change allowance.
+
+If the voter re-submits for the answer they already voted for, the code increments change_count, performs two recalculateVotes() calls, and consumes one of their limited vote changes — all for a no-op. Add an early return when the answer hasn't actually changed.
+
+Proposed fix
+         if ($existingVote) {
++            // No-op if voting for the same answer
++            if ($existingVote->answer_id === $answer->id) {
++                return $existingVote;
++            }
++
+             // Enforce max_vote_changes (0 = unlimited)
+             $maxVoteChanges = $round->game->settings['max_vote_changes'] ?? 0;
+website/app/Models/User.php (1)
+32-33: ⚠️ Potential issue | 🟠 Major
+
+Remove two_factor_secret, two_factor_confirmed_at, and two_factor_recovery_codes from $fillable.
+
+These sensitive fields should not be mass-assignable. While current code safely sets them explicitly through TwoFactorController, having them in $fillable violates the principle of least privilege and creates a footgun for future developers. If a controller accidentally uses mass-assignment (e.g., User::create($request->all())), an attacker could bypass 2FA setup. These fields should only be modified through dedicated 2FA endpoints.
+
+Proposed fix
+     protected $fillable = [
+         'name',
+         'nickname',
+         'email',
+         'password',
+         'role',
+         'is_banned',
+         'ban_reason',
+         'banned_at',
+         'banned_by',
+-        'two_factor_secret',
+-        'two_factor_confirmed_at',
+-        'two_factor_recovery_codes',
+         'avatar_url',
+     ];
+🤖 Fix all issues with AI agents
+In `@website/app/Application/Http/Controllers/Api/V1/GameController.php`:
+- Around line 489-546: The banPlayer method currently allows a co-host to ban
+another co-host because it uses isHostOrCoHost($player) for authorization and
+only prevents banning the host; add a guard before performing the update that
+prevents a co-host (i.e., a player who is not the host but for whom
+isHostOrCoHost($player) returns true) from banning a target GamePlayer who has
+is_co_host true — return a 403 (or 422 per project convention) in that case;
+reference the banPlayer function, the isHostOrCoHost($player) check, the
+GamePlayer record (e.g., $gamePlayer->is_co_host) and the existing
+toggleCoHost() behavior to ensure only the host can demote/promote co-hosts.
+
+In `@website/app/Application/Http/Controllers/Api/V1/RoundController.php`:
+- Around line 62-69: The answers query in RoundController when
+$round->isCompleted() uses $round->answers()->with('player')->get()->map(...)
+but does not eager-load the votes count, so 'votes_count' will be null; update
+that query to include withCount('votes') (mirroring
+GameProcessor::handleVotingDeadline) so the mapped array can read
+$a->votes_count correctly, keeping the rest of the mapping and player fallback
+($a->author_nickname ?? $a->player->nickname) unchanged.
+
+In `@website/resources/js/pages/ArchiveGame.vue`:
+- Around line 194-201: The lazy-fetch in ArchiveGame.vue assigns raw API answers
+to round.answers, so the template sees missing fields; after the fetch in the
+toggleRound (the block that calls api.archive.round) replace the direct
+assignment with the same mapping used in loadGame: take the array from
+data.answers ?? data.data ?? [], then map each answer to include
+player_nickname: a.player_name and voted_by: a.voters (and preserve other
+fields) before assigning to round.answers; keep the catch behavior that sets
+round.answers = [].
+
+In `@website/resources/js/pages/Game.vue`:
+- Around line 856-860: The client is off-by-one because submitCount and
+voteCount include the initial action but server-side counters only increment
+after the initial submit/vote; update the editsRemaining and voteChangesLeft
+computed values to subtract the initial action (i.e., treat the first
+submission/vote as not counting toward max_edits/max_vote_changes) by using
+adjusted counts like (submitCount.value - 1) and (voteCount.value - 1) when
+computing remaining allowances (respecting floor at 0 and the existing max===0
+=> Infinity behavior); modify the computed functions editsRemaining and
+voteChangesLeft accordingly so they reference maxEdits, maxVoteChanges,
+submitCount, and voteCount.
+- Around line 1490-1498: The GameController.state() response must include
+edit_count on the my_answer object and change_count on the my_vote object, then
+restore those values client-side by adding watchers that mirror the isReady
+watcher: when phase becomes 'playing' or when the server state payload is
+applied, set submitCount.value = response.my_answer.edit_count (or 0 if missing)
+and voteCount.value = response.my_vote.change_count (or 0 if missing); update
+the client-side watchers in Game.vue (referencing submitCount, voteCount,
+my_answer, my_vote and the existing isReady watcher) so counts are recovered
+after a refresh and match the server-enforced limits.
+
+In `@website/resources/views/emails/account-banned.blade.php`:
+- Around line 141-145: The text node "Hvis du mener dette er feil, ta kontakt
+med oss." in the account-banned email template should be replaced with an
+actionable contact (a clickable mailto link and/or a support URL) so banned
+users can reach support without logging in; update the div in
+account-banned.blade.php that contains that exact sentence to include a visible
+link (e.g., support email and/or help center URL) and prefer using the
+application's centralized support config value or translation string so the
+address is maintainable and localizable.
+🟡 Minor comments (20)
+website/.env.example-71-71 (1)
+71-71: ⚠️ Potential issue | 🟡 Minor
+
+Avoid quotes in MAIL_FROM_ADDRESS to prevent literal quotes in headers.
+
+Some dotenv loaders treat quotes as part of the value, which can yield "post@ekstremedia.no" in outbound mail headers. Consider removing the quotes.
+
+✅ Suggested change
+-MAIL_FROM_ADDRESS="post@ekstremedia.no"
++MAIL_FROM_ADDRESS=post@ekstremedia.no
+website/resources/js/stores/gameStore.js-269-273 (1)
+269-273: ⚠️ Potential issue | 🟡 Minor
+
+Between-rounds recovery timer restarts from full duration on page reload.
+
+When recovering state via fetchGameState, _startResultsCountdown is called with the full time_between_rounds setting. If the round completed 10 seconds ago and the delay is 15 seconds, the user sees 15 seconds instead of ~5. Consider computing elapsed time from the round's completion timestamp (if available in data) and subtracting it.
+
+website/resources/js/stores/gameStore.js-133-139 (1)
+133-139: ⚠️ Potential issue | 🟡 Minor
+
+Race condition: addBot can duplicate the player entry.
+
+The .player.joined WebSocket handler (line 324) guards against duplicates, but addBot pushes unconditionally. If the broadcast arrives before the HTTP response resolves, the player is already in the list and push adds a second copy. Apply the same dedup guard here.
+
+Proposed fix
+     async function addBot(code) {
+         const { data } = await api.games.addBot(code);
+-        if (data.player) {
++        if (data.player && !players.value.find(p => p.id === data.player.id)) {
+             players.value.push(data.player);
+         }
+         return data;
+     }
+website/resources/views/emails/password-reset.blade.php-2-2 (1)
+2-2: ⚠️ Potential issue | 🟡 Minor
+
+Same lang="und" issue as the welcome template — should be "nb".
+
+All content is in Norwegian Bokmål. Set lang="nb" on the <html> tag (line 2) and the inner <div> (line 92) for proper accessibility and screen reader support.
+
+website/resources/views/emails/welcome.blade.php-2-2 (1)
+2-2: ⚠️ Potential issue | 🟡 Minor
+
+Set lang attribute to match the actual email language.
+
+The lang attribute is set to "und" (undetermined), but the email content is entirely in Norwegian. This should be "nb" (Norwegian Bokmål) for accessibility and correct rendering by email clients and screen readers. The same applies to the lang attribute on line 92.
+
+Proposed fix
+-<html lang="und" dir="auto" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
++<html lang="nb" dir="auto" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+And on line 92:
+
+-  <div aria-roledescription="email" style="background-color:`#f3f4f6`;" role="article" lang="und" dir="auto">
++  <div aria-roledescription="email" style="background-color:`#f3f4f6`;" role="article" lang="nb" dir="auto">
+website/app/Domain/Player/Actions/CreateBotPlayerAction.php-22-33 (1)
+22-33: ⚠️ Potential issue | 🟡 Minor
+
+TOCTOU race on nickname uniqueness check.
+
+The exists() check on Line 25 and create() on Line 26 are not atomic. Under concurrent bot creation, two requests could both pass the check and create players with the same nickname. Since nickname doesn't appear to have a unique DB constraint, this won't throw but will produce duplicates.
+
+Given that bot creation is likely low-volume, this is unlikely to be a practical issue, but wrapping the create in a try/catch for integrity violations (or using firstOrCreate) would be more robust.
+
+website/resources/js/services/api.js-56-79 (1)
+56-79: ⚠️ Potential issue | 🟡 Minor
+
+getApiError: 404 maps to 'common.gameNotFound' — may be too specific.
+
+Line 75 maps all 404 responses to t('common.gameNotFound'). If this utility is used for non-game API calls (e.g., player profile, archive), a 404 would display a misleading "game not found" message. Consider a generic 'common.notFound' key, or let callers override the mapping.
+
+website/resources/js/pages/Login.vue-15-19 (1)
+15-19: ⚠️ Potential issue | 🟡 Minor
+
+Same :key="name" collision risk as in Register.vue.
+
+Duplicate player nicknames will produce duplicate Vue keys. Use index-based keys instead.
+
+🐛 Suggested fix
+                 <span
+-                    v-for="name in gamePreview.players"
+-                    :key="name"
++                    v-for="(name, index) in gamePreview.players"
++                    :key="index"
+                     class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300"
+                 >{{ name }}</span>
+website/resources/js/pages/Register.vue-15-19 (1)
+15-19: ⚠️ Potential issue | 🟡 Minor
+
+Player name used as :key may collide.
+
+If two players share the same nickname, :key="name" will produce duplicate keys, causing Vue rendering issues. Use an index or unique identifier instead.
+
+🐛 Suggested fix
+                 <span
+-                    v-for="name in gamePreview.players"
+-                    :key="name"
++                    v-for="(name, index) in gamePreview.players"
++                    :key="index"
+                     class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300"
+                 >{{ name }}</span>
+website/resources/js/layouts/AppLayout.vue-197-200 (1)
+197-200: ⚠️ Potential issue | 🟡 Minor
+
+isActive() breaks when the URL contains query parameters.
+
+usePage().url includes the query string (e.g. /spill?tab=lobby). Neither url === path nor url.startsWith(path + '/') will match, so active styling silently disappears on any page that appends query params.
+
+Proposed fix
+ function isActive(path) {
+-    const url = usePage().url;
+-    return url === path || url.startsWith(path + '/');
++    const url = usePage().url.split('?')[0];
++    return url === path || url.startsWith(path + '/');
+ }
+website/resources/js/layouts/AppLayout.vue-17-17 (1)
+17-17: ⚠️ Potential issue | 🟡 Minor
+
+Update Tailwind CSS ! important modifier to v4 suffix syntax.
+
+This project uses Tailwind CSS v4.0.0, which requires the ! important modifier to be placed after the utility name, not before. Lines 17, 24, 31, and 38 use the deprecated v3 prefix syntax (!text-emerald-600) and should be changed to text-emerald-600!.
+
+Example: !text-emerald-600 dark:!text-emerald-400 → text-emerald-600! dark:text-emerald-400!
+
+website/app/Application/Http/Controllers/Api/V1/HallOfFameController.php-43-53 (1)
+43-53: ⚠️ Potential issue | 🟡 Minor
+
+Minor: multi-space strings can skew word count on non-PostgreSQL.
+
+The pgsql path splits on \s+ (collapsing consecutive whitespace), but the non-pgsql fallback counts individual space characters. A sentence like "hello world foo" has 4 spaces but only 3 words, so the space-count filter would report 4 (mapping to 5 "words") instead of the actual 3.
+
+If the gullkorn_clean data is normalized (single spaces only), this is a non-issue. Otherwise, a REPLACE of double-spaces or a REGEXP alternative for MySQL would align the behavior.
+
+website/resources/views/emails/game-invite.blade.php-2-2 (1)
+2-2: ⚠️ Potential issue | 🟡 Minor
+
+lang="und" should reflect the actual content language.
+
+The email content is entirely in Norwegian, but the lang attribute is set to "und" (undetermined). This can affect screen reader pronunciation and email client rendering. Set it to "nb" (Norwegian Bokmål) or "no".
+
+-<html lang="und" dir="auto" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
++<html lang="nb" dir="auto" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+website/resources/views/emails/account-banned.blade.php-2-2 (1)
+2-2: ⚠️ Potential issue | 🟡 Minor
+
+Set lang attribute to "nb" (Norwegian Bokmål) instead of "und".
+
+The email content is entirely in Norwegian, but lang="und" declares the language as "undetermined." This affects screen readers and email client rendering. Since this is an MJML-generated output, update the MJML source to set the correct language.
+
+website/app/Domain/Round/Actions/MarkReadyAction.php-46-55 (1)
+46-55: ⚠️ Potential issue | 🟡 Minor
+
+Minor race window: two simultaneous ready-marks could both miss the "all ready" trigger.
+
+If two players mark ready at the same instant, each update commits independently, but the subsequent count() in checkAutoAdvance could run before the other player's write is visible (depending on isolation level). Both would see readyCount < activePlayers and neither would advance the deadline.
+
+In practice this is mitigated by the Delectus tick processing expired deadlines, and the window is very small, so it's unlikely to cause user-visible issues. A lockForUpdate on the round row would close the gap if this ever becomes a problem.
+
+website/tests/Feature/Api/RoundReadyTest.php-121-146 (1)
+121-146: ⚠️ Potential issue | 🟡 Minor
+
+Both players submit identical answer text — may fail if answer uniqueness is enforced.
+
+On lines 128-131, both players submit the exact same answer (from makeAnswerForAcronym). If the SubmitAnswerAction rejects duplicate text within a round, player2's submission would fail silently (the test doesn't assert the submission responses). Consider using makeAltAnswerForAcronym for the second player's answer.
+
+Proposed fix
+         // Both players submit
+         $this->withHeaders(['X-Guest-Token' => $this->hostToken])
+             ->postJson("/api/v1/rounds/{$this->roundId}/answer", ['text' => $answer]);
++        $altAnswer = $this->makeAltAnswerForAcronym($acronym);
+         $this->withHeaders(['X-Guest-Token' => $this->player2Token])
+-            ->postJson("/api/v1/rounds/{$this->roundId}/answer", ['text' => $answer]);
++            ->postJson("/api/v1/rounds/{$this->roundId}/answer", ['text' => $altAnswer]);
+website/app/Domain/Delectus/GameProcessor.php-107-117 (1)
+107-117: ⚠️ Potential issue | 🟡 Minor
+
+Two independent broadcasts share a single try/catch — GameFinishedBroadcast may be skipped if the chat broadcast fails.
+
+If ChatMessageBroadcast throws on line 108, the more critical GameFinishedBroadcast on line 114 won't fire, leaving clients unaware the lobby was closed. The pattern elsewhere in this file (and in RoundController) correctly isolates each broadcast.
+
+Proposed fix
+-                try {
+-                    broadcast(new ChatMessageBroadcast(
+-                        $game,
+-                        'Delectus',
+-                        'Lobbyen ble stengt på grunn av inaktivitet.',
+-                        true
+-                    ));
+-                    broadcast(new GameFinishedBroadcast($game, []));
+-                } catch (\Throwable $e) {
+-                    // Ignore broadcast failures
+-                }
++                try {
++                    broadcast(new ChatMessageBroadcast(
++                        $game,
++                        'Delectus',
++                        'Lobbyen ble stengt på grunn av inaktivitet.',
++                        true
++                    ));
++                } catch (\Throwable $e) {
++                    Log::error('Broadcast failed: chat.lobby_closed', ['game' => $game->code, 'error' => $e->getMessage()]);
++                }
++
++                try {
++                    broadcast(new GameFinishedBroadcast($game, []));
++                } catch (\Throwable $e) {
++                    Log::error('Broadcast failed: game.finished', ['game' => $game->code, 'error' => $e->getMessage()]);
++                }
+website/tests/Feature/Api/KickPlayerTest.php-99-108 (1)
+99-108: ⚠️ Potential issue | 🟡 Minor
+
+Inconsistent HTTP status code for unauthorized kick: returns 422 instead of 403.
+
+The kick endpoint returns 422 Unprocessable Entity when a non-host/co-host attempts to kick a player (via KickPlayerAction throwing InvalidArgumentException), but the ban endpoint explicitly returns 403 Forbidden for the same authorization check. Both endpoints call $game->isHostOrCoHost() to verify permissions, but kick delegates error handling to exception-based validation (which returns 422), while ban performs explicit authorization checks (returning 403). Since 403 is the correct HTTP status for authorization failures, the kick controller should return 403 instead of 422 for this error case. This can be fixed by adding an explicit authorization check in the kick controller method before calling the action, consistent with how banPlayer is implemented.
+
+website/resources/js/pages/Game.vue-619-625 (1)
+619-625: ⚠️ Potential issue | 🟡 Minor
+
+Password input uses type="text" — consider type="password" to mask input.
+
+Even though this is a game password (not a credential), using type="password" prevents shoulder-surfing and aligns with user expectations for password entry fields.
+
+Proposed fix
+             <InputText
+                 v-model="gamePassword"
+-                type="text"
++                type="password"
+                 :placeholder="t('create.password')"
+                 class="w-full"
+                 autofocus
+             />
+website/resources/js/pages/Game.vue-684-689 (1)
+684-689: ⚠️ Potential issue | 🟡 Minor
+
+Excluded letters filter strips non-ASCII letters (Æ, Ø, Å).
+
+The regex /[^A-Z]/g only allows ASCII A–Z. Since this appears to be a Norwegian-language game, users likely need to exclude Norwegian letters like Æ, Ø, and Å.
+
+Proposed fix
+-                    `@input`="settingsForm.excluded_letters = settingsForm.excluded_letters.toUpperCase().replace(/[^A-Z]/g, '')"
++                    `@input`="settingsForm.excluded_letters = settingsForm.excluded_letters.toUpperCase().replace(/[^A-ZÆØÅ]/g, '')"
+🧹 Nitpick comments (56)
+.github/workflows/tests.yml (1)
+48-51: Nit: BROADCAST_CONNECTION env var has no effect on composer install.
+
+This environment variable is a Laravel runtime setting and isn't read during dependency installation. The actual override is correctly handled by the sed replacement on Line 56. You can safely remove this env block.
+
+Proposed fix
+      - name: Install dependencies
+-        env:
+-          BROADCAST_CONNECTION: 'null'
+         run: composer install --no-interaction --no-progress --prefer-dist
+website/resources/js/pages/Games.vue (5)
+196-200: gameStartedNotice is set once and never cleared or updated.
+
+The guard !gameStartedNotice.value prevents updating if a different game starts later. More importantly, there's no way to dismiss the banner — it persists across every poll cycle and even after the user rejoins the game and comes back. Consider:
+
+Allowing dismissal (e.g., a close button that nulls gameStartedNotice).
+Removing the !gameStartedNotice.value guard so the notice updates to the most recently started game.
+♻️ Suggested improvement
+In the template (around line 18), add a dismiss button:
+
+         <Button
+             :label="t('games.rejoin')"
+             severity="success"
+             size="small"
+             `@click`="router.visit(`/spill/${gameStartedNotice.code}`)"
+         />
++        <Button
++            icon="pi pi-times"
++            text
++            rounded
++            severity="secondary"
++            `@click`="gameStartedNotice = null"
++        />
+In the script (lines 196–200), allow updating to a newer game:
+
+-        const started = myGames.value.find(g => g.status !== 'lobby');
+-        if (started && !gameStartedNotice.value) {
+-            gameStartedNotice.value = started;
+-        }
++        const started = myGames.value.find(g => g.status !== 'lobby');
++        gameStartedNotice.value = started ?? null;
+3-11: Kick/ban banner has no dismiss mechanism.
+
+If a user is kicked, the banner persists for the entire session on this page. A close/dismiss button would improve UX, especially since the user may want to continue browsing games without the banner occupying space.
+
+56-66: Duplicated badge logic between "My Games" and "Open Games" sections.
+
+Lines 56–66 and 105–115 render identical status + player-count badges. If the display logic evolves (e.g., new statuses), both blocks must be updated in lockstep.
+
+Consider extracting a small component or a helper function/slot to DRY this up.
+
+208-221: String-matching on error messages is fragile.
+
+msg.toLowerCase().includes('already in game') (line 215) will silently break if the backend ever changes the wording. Consider having the API return a machine-readable error code (e.g., "code": "ALREADY_IN_GAME") and matching on that instead, or at minimum add a comment documenting the coupling.
+
+179-188: apiErrorMap only maps two English strings — easy to miss new error messages.
+
+This is fine for now, but as the API grows, unmapped errors will fall through as raw English strings in a Norwegian UI. Consider centralizing error mapping or using backend error codes.
+
+website/resources/js/stores/gameStore.js (1)
+383-396: Minor inconsistency in is_own detection between .voting.started and fetchGameState.
+
+In fetchGameState (line 246), is_own is determined by both a.id === myAnswerId and a.player_id === _getAuthStore()?.player?.id, but here only the first check is used. If myAnswer is somehow null at this point (e.g., page refresh race), no answer gets flagged as own. Consider adding the fallback player_id check for consistency.
+
+website/app/Application/Http/Controllers/Api/V1/PlayerProfileController.php (1)
+85-95: DRY: stats array mapping is duplicated verbatim in show() and stats().
+
+The stats-to-array mapping on lines 85–95 is an exact copy of lines 120–130. Extract a private helper (e.g., formatStats(?PlayerStat $stat): ?array) so both methods share a single source of truth.
+
+♻️ Proposed refactor — extract stats formatting helper
+Add a private method:
+
++    private function formatStats(?PlayerStat $stat): ?array
++    {
++        if (! $stat) {
++            return null;
++        }
++
++        return [
++            'games_played' => $stat->games_played,
++            'games_won' => $stat->games_won,
++            'win_rate' => $stat->win_rate,
++            'rounds_played' => $stat->rounds_played,
++            'rounds_won' => $stat->rounds_won,
++            'votes_received' => $stat->total_votes_received,
++            'total_sentences_submitted' => $stat->total_sentences_submitted,
++            'best_sentence' => $stat->best_sentence,
++            'best_sentence_votes' => $stat->best_sentence_votes,
++        ];
++    }
+Then in show():
+
+-            'stats' => $stat ? [
+-                'games_played' => $stat->games_played,
+-                ...
+-            ] : null,
++            'stats' => $this->formatStats($stat),
+And likewise in stats().
+
+Also applies to: 120-130
+
+website/app/Application/Http/Requests/Api/V1/InvitePlayerRequest.php (1)
+21-27: Hardcoded Norwegian validation messages bypass Laravel's localization system.
+
+If multi-language support is planned, consider using translation keys (e.g., __('validation.custom.email.required')) instead of inline Norwegian strings. If the app is Norwegian-only, this is fine as-is.
+
+website/resources/js/pages/Admin.vue (1)
+164-165: Migrate from deprecated TabView/TabPanel to Tabs API in PrimeVue 4.5.4.
+
+TabView and TabPanel are deprecated in PrimeVue v4.5.4 and will be removed in a future release. Migrate to the new Tabs component set: Tabs, TabList, Tab, TabPanels, and TabPanel.
+
+Migration example:
+
+<!-- Before -->
+<TabView>
+  <TabPanel :header="t('admin.players')">Content</TabPanel>
+</TabView>
+
+<!-- After -->
+<Tabs v-model:value="activeTab">
+  <TabList>
+    <Tab value="0">{{ t('admin.players') }}</Tab>
+  </TabList>
+  <TabPanels>
+    <TabPanel value="0">Content</TabPanel>
+  </TabPanels>
+</Tabs>
+Update imports to use the new component names and link Tab and TabPanel pairs via matching value props.
+
+website/resources/js/pages/ResetPassword.vue (1)
+111-112: Consider clearing the timeout on unmount.
+
+If the user clicks the login link (Line 12) before the 3-second delay, router.visit will still fire and trigger a redundant navigation. Store the timeout ID and clear it in onUnmounted.
+
+♻️ Proposed fix
+-import { ref, reactive } from 'vue';
++import { ref, reactive, onUnmounted } from 'vue';
+ import { Link, router } from '@inertiajs/vue3';
++let redirectTimer = null;
++onUnmounted(() => { if (redirectTimer) clearTimeout(redirectTimer); });
++
+ async function handleReset() {
+         success.value = true;
+-        setTimeout(() => router.visit('/logg-inn'), 3000);
++        redirectTimer = setTimeout(() => router.visit('/logg-inn'), 3000);
+website/app/Application/Http/Middleware/HandleInertiaRequests.php (1)
+29-46: Schema::hasTable runs on every lazy evaluation — consider caching.
+
+Since the gullkorn prop is a lazy callable, Schema::hasTable('gullkorn_clean') will execute a DB query each time the frontend accesses this prop. Once the table exists, it won't disappear, so you could cache the result for the duration of the request or use a simple static flag.
+
+Also, inRandomOrder() combined with whereRaw uses PostgreSQL-specific functions (regexp_split_to_array, array_length), which ties this to PostgreSQL. This is fine if PostgreSQL is the only target, but worth being aware of.
+
+♻️ Optional: cache the table existence check
+ private function getRandomGullkorn(): ?string
+ {
+     try {
+-        if (Schema::hasTable('gullkorn_clean')) {
++        static $tableExists = null;
++        $tableExists ??= Schema::hasTable('gullkorn_clean');
++
++        if ($tableExists) {
+             $gullkorn = DB::table('gullkorn_clean')
+website/app/Application/Broadcasting/Events/PlayerKickedBroadcast.php (1)
+37-49: $this->game->fresh() can return null if the record was deleted.
+
+While highly unlikely with ShouldBroadcastNow, calling ->activePlayers()->count() on a null $game would throw an error. A null-coalesce fallback keeps it safe.
+
+🛡️ Defensive fix
+     public function broadcastWith(): array
+     {
+-        $game = $this->game->fresh();
++        $game = $this->game->fresh() ?? $this->game;
+
+         return [
+website/resources/js/pages/Profile.vue (1)
+67-112: Migrate from deprecated TabView/TabPanel to the new Tabs component set.
+
+PrimeVue 4.5.4 has deprecated TabView and TabPanel in favor of the new Tabs/TabList/Tab/TabPanels/TabPanel API introduced in PrimeVue 4. While the legacy components still function, they may be removed in a future release. Update the template to use the new component structure to ensure forward compatibility.
+
+website/app/Domain/Player/Actions/CreateBotPlayerAction.php (1)
+51-57: Prefer random_int() over rand().
+
+random_int() is the modern PHP recommendation and generates cryptographically secure integers. While this isn't security-critical, it's a good habit and avoids any linting warnings about rand() usage.
+
+♻️ Suggested change
+     private function generateBotName(): string
+     {
+         $name = self::BOT_NAMES[array_rand(self::BOT_NAMES)];
+-        $suffix = rand(10, 99);
++        $suffix = random_int(10, 99);
+ 
+         return "{$name}{$suffix}";
+     }
+website/resources/js/pages/Register.vue (1)
+14-20: Duplicated guest form markup across invite/non-invite branches.
+
+The guest login forms at Lines 29–57 and Lines 170–198 are nearly identical (differing only in id, button severity, and position). Consider extracting a reusable GuestLoginForm component to reduce duplication and ensure both paths stay in sync when changes are needed.
+
+Also applies to: 162-198
+
+website/resources/js/pages/Login.vue (2)
+221-233: getSafeRedirect and getRedirectParam duplicated across Login.vue and Register.vue.
+
+Both functions are identical in Login.vue and Register.vue. Extract them into a shared composable (e.g., useRedirect.js) to keep redirect validation logic DRY and consistent.
+
+♻️ Example composable
+// composables/useRedirect.js
+export function useRedirect(defaultPath = '/spill') {
+    function getRedirectParam() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('redirect') || '';
+    }
+
+    function getSafeRedirect() {
+        const redirect = getRedirectParam() || defaultPath;
+        if (redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('://')) {
+            return redirect;
+        }
+        return defaultPath;
+    }
+
+    return { getRedirectParam, getSafeRedirect };
+}
+3-65: Significant template duplication with Register.vue.
+
+The game invite banner (Lines 3–21), guest form sections (Lines 29–57 and 157–185), and their conditional layout logic are nearly identical to Register.vue. This shared UI could be extracted into reusable components (e.g., GameInviteBanner.vue, GuestLoginForm.vue) to reduce maintenance burden across both pages.
+
+Also applies to: 149-186
+
+website/resources/js/pages/GameSpectate.vue (1)
+192-194: Consider marking code prop as required.
+
+The entire spectate flow depends on props.code (Lines 221, 224, 227, 172). If it's ever undefined, all API calls will fail silently. Adding required: true makes the contract explicit and produces a clear Vue warning during development.
+
+♻️ Suggested change
+-const props = defineProps({ code: String });
++const props = defineProps({
++    code: { type: String, required: true },
++});
+website/resources/js/pages/Welcome.vue (2)
+153-159: parseSentence regex removes only the first non-letter character.
+
+The regex /[^a-zA-ZæøåÆØÅ]/ lacks the g flag, so only the first non-alpha character is stripped before charAt(0). If a word starts with multiple non-alpha characters (e.g., from quoted text), the acronym letter could be a non-alpha character. This is unlikely with typical hall-of-fame sentences but worth noting.
+
+♻️ More robust stripping
+-        letters: words.map(w => w.replace(/[^a-zA-ZæøåÆØÅ]/, '').charAt(0).toUpperCase()),
++        letters: words.map(w => w.replace(/[^a-zA-ZæøåÆØÅ]/g, '').charAt(0).toUpperCase()),
+201-215: Auth store initialized inside onMounted — works but unconventional.
+
+useAuthStore() on Line 202 is called inside onMounted instead of at the top-level of <script setup>. This works fine with Pinia (same singleton), but placing the store reference at the top level would be more consistent with the pattern used in other components and avoids confusion about the store's scope.
+
+♻️ Move store access to top level
+ const { isDark, toggleDark } = useDarkMode();
++const authStore = useAuthStore();
+ 
+ // Use the initial gullkorn from Inertia for the first animation
+ const initialGullkorn = usePage().props.gullkorn || '';
+ onMounted(async () => {
+-    const authStore = useAuthStore();
+     if (!authStore.isInitialized) {
+         await authStore.loadFromStorage();
+     }
+website/resources/js/layouts/AppLayout.vue (2)
+71-77: max-h transitions are unreliable for smooth open/close animations.
+
+Transitioning max-height between 0 and a fixed value (max-h-96 = 24rem) produces a non-linear feel — the animation overshoots or stutters when content is shorter than 24rem. Consider using grid-rows animation (grid-template-rows: 0fr → 1fr) or a JS-measured height for a smoother result. This is a minor polish item.
+
+212-216: Auth initialization races with the first render.
+
+loadFromStorage is async and called in onMounted, so the initial render may flash unauthenticated UI (guest banner, login buttons) before the store is hydrated. If loadFromStorage is fast (localStorage only), this is negligible; if it hits an API, consider initializing before mount or using a loading state.
+
+website/app/Application/Http/Controllers/Api/V1/ArchiveController.php (2)
+78-78: Use strict comparison in in_array.
+
+in_array($gp->player_id, $winnerIds) uses loose comparison by default. If player_id types ever differ (e.g., int vs string), this could silently match incorrectly. Pass true as the third argument.
+
+Proposed fix
+-                'is_winner' => in_array($gp->player_id, $winnerIds),
++                'is_winner' => in_array($gp->player_id, $winnerIds, true),
+50-50: Cache::rememberForever — no invalidation path visible.
+
+Archived game data is cached forever. If a game result is corrected or data is backfilled, the cache will serve stale data indefinitely. Consider adding cache invalidation when game results are updated, or use a TTL-based cache instead.
+
+website/app/Infrastructure/Models/Vote.php (1)
+21-23: Minor inconsistency: $casts property vs casts() method.
+
+Other models in the codebase (e.g., Player.php, User.php) define casts via the casts() method, while this model uses the protected $casts property. Both work, but consistency across models aids readability.
+
+website/resources/js/pages/Archive.vue (2)
+142-143: Silent error swallowing hides failures from the user.
+
+The empty catch block silently drops errors. Consider at minimum logging the error or showing a brief toast/notification so users know the load failed, rather than silently presenting stale data.
+
+106-120: Debounce timer not cleared on unmount.
+
+If the component unmounts before the 300ms timer fires, loadGames will still execute against potentially stale refs. Consider clearing the timer in an onUnmounted hook.
+
+Suggested fix
+-import { ref, computed, onMounted } from 'vue';
++import { ref, computed, onMounted, onUnmounted } from 'vue';
+Then add:
+
++onUnmounted(() => clearTimeout(debounceTimer));
+website/tests/Feature/Mail/WelcomeMailTest.php (2)
+31-45: Consider asserting response status before checking mail.
+
+If the /api/v1/auth/register endpoint returns an error (e.g., validation failure), Mail::assertQueued will fail with a confusing message. Capturing the response and asserting 201/200 first makes failures easier to diagnose.
+
+Suggested improvement
+-        $this->postJson('/api/v1/auth/register', [
++        $response = $this->postJson('/api/v1/auth/register', [
+             'email' => 'welcome@example.com',
+             'password' => 'password123',
+             'password_confirmation' => 'password123',
+             'nickname' => 'WelcomeUser',
+         ]);
++        $response->assertSuccessful();
+47-66: Same here — assert intermediate responses for better diagnostics.
+
+Both the guest creation (Line 51) and the subsequent registration (Line 56) should assert successful responses. If guest_token comes back null due to a response structure change, the test will fail opaquely.
+
+Suggested improvement
+         $guestResponse = $this->postJson('/api/v1/auth/guest', [
+             'nickname' => 'ConvertGuest',
+         ]);
++        $guestResponse->assertSuccessful();
+         $guestToken = $guestResponse->json('player.guest_token');
+ 
+-        $this->postJson('/api/v1/auth/register', [
++        $response = $this->postJson('/api/v1/auth/register', [
+             'guest_token' => $guestToken,
+             'email' => 'converted@example.com',
+             'password' => 'password123',
+             'password_confirmation' => 'password123',
+         ]);
++        $response->assertSuccessful();
+website/app/Application/Http/Controllers/Api/V1/HallOfFameController.php (1)
+49-53: inRandomOrder() on a potentially large table after filtering.
+
+inRandomOrder() typically translates to ORDER BY RANDOM() / ORDER BY RAND(), which can be slow on large datasets. If gullkorn_clean grows significantly, consider caching a random pick or using an indexed random-selection strategy.
+
+website/routes/api.php (2)
+100-100: Consider rate-limiting the invite endpoint.
+
+POST /{code}/invite presumably sends an email, which could be abused for spam if not rate-limited. Consider applying a throttle middleware (e.g., throttle:5,1) to this route or handling it in the controller.
+
+92-93: Nit: minor route path inconsistency for bot operations.
+
+POST /{code}/add-bot vs DELETE /{code}/bot/{playerId} — the add path uses a verb prefix while the delete path is RESTful. For consistency, consider POST /{code}/bot (create) and DELETE /{code}/bot/{playerId} (destroy).
+
+website/routes/web.php (1)
+10-35: Consider extracting the helper to a dedicated service or helper class.
+
+Defining a global function in the routes file is unconventional in Laravel. This works but can become harder to test and discover. A small invokable class or a static method on a service would be more idiomatic.
+
+That said, the function_exists guard and the logic itself are sound — the regex safely constrains input, eager-loading is appropriate, and the isFinished() check correctly filters out completed games.
+
+website/tests/Feature/Api/BotFeatureTest.php (1)
+111-113: Redundant assertion — bots already filtered by is_bot = true.
+
+The foreach on line 111-113 asserts $bot['is_bot'] is true, but $bots was already collected via ->where('is_bot', true) on line 108. This loop can never fail unless Laravel's Collection::where is broken. Not harmful, just adds noise.
+
+docs/audit-plan.md (2)
+52-91: Add language specifiers to fenced code blocks.
+
+Several code blocks (lines 52, 58, 64, 70, 76, 82, 88) are missing language specifiers, flagged by markdownlint (MD040). Since these contain Vue template snippets, add the appropriate language identifier.
+
+Example fix
+-```
++```vue
+ {{ playerCount }} {{ playerCount === 1 ? 'player' : 'players' }}
+</details>
+
+---
+
+`93-108`: **Add blank line before the table (MD058).**
+
+Markdownlint flags the table at line 94 for not being surrounded by blank lines.
+
+
+
+<details>
+<summary>Fix</summary>
+
+```diff
+ ### New i18n keys to add (both NO and EN):
++
+ | Key | NO | EN |
+website/app/Application/Jobs/BotSubmitVoteJob.php (1)
+36-43: Bot could systematically favor certain answers in non-uniform distributions.
+
+inRandomOrder() is fine for randomness, but since the bot picks from all non-self answers equally, bots in games with many bots will spread votes uniformly. This is probably desirable for now, but worth considering if you want bots to exhibit more human-like voting patterns (e.g., biasing toward higher-quality answers) in the future.
+
+website/tests/Feature/Api/ArchiveTest.php (1)
+904-915: Unused variable assignments flagged by PHPMD.
+
+$bot on lines 906 and 935, and $round on line 1042 are assigned but never read. Dropping the assignments keeps the side effects while silencing the warnings.
+
+Fix
+-        $bot = Player::factory()->bot()->create(['nickname' => 'Botulf42']);
++        Player::factory()->bot()->create(['nickname' => 'Botulf42']);
+-        $bot = Player::factory()->bot()->create(['nickname' => 'Botulf55']);
++        Player::factory()->bot()->create(['nickname' => 'Botulf55']);
+-        $round = Round::create([
++        Round::create([
+Also applies to: 933-945, 1042-1049
+
+website/app/Application/Jobs/BotSubmitAnswerJob.php (1)
+19-26: Consider setting $tries = 1 to prevent duplicate answer submissions on retry.
+
+Neither BotSubmitAnswerJob nor BotSubmitVoteJob set a $tries property. If the queue worker retries a failed job (e.g., due to a timeout after the answer was already persisted but before the job completed), SubmitAnswerAction could create a duplicate answer. Setting public int $tries = 1; makes the intent explicit.
+
+Proposed fix
+ class BotSubmitAnswerJob implements ShouldQueue
+ {
+     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+ 
++    public int $tries = 1;
++
+     public function __construct(
+         public string $roundId,
+         public string $playerId,
+     ) {}
+Apply the same to BotSubmitVoteJob.
+
+website/app/Domain/Round/Services/BotAnswerService.php (1)
+36-46: PostgreSQL-specific SQL needs explicit driver handling or dedicated test coverage.
+
+The regexp_split_to_array and array_length functions are PostgreSQL-only. On SQLite (the test database), this query path always fails and falls back to generateFallback(). The try/catch at line 59 handles this gracefully, but the gullkorn-matching logic is never exercised in the test suite—BotAnswerServiceTest.php tests only the fallback path.
+
+Consider applying the driver-guard pattern from HallOfFameController::random() (lines 44-49):
+
+$driver = DB::connection()->getDriverName();
+if ($driver === 'pgsql') {
+    // PostgreSQL-specific query
+} else {
+    // Fallback implementation
+}
+Alternatively, add a dedicated PostgreSQL integration test that sets up gullkorn_clean data and explicitly tests findMatchingGullkorn().
+
+website/resources/js/pages/ArchiveGame.vue (2)
+134-134: Unused Badge import.
+
+Badge is imported but never referenced in the template. Remove it to keep imports clean.
+
+🧹 Proposed fix
+ import Skeleton from 'primevue/skeleton';
+ import Button from 'primevue/button';
+-import Badge from 'primevue/badge';
+ import { api } from '../services/api.js';
+205-211: shareGame silently succeeds — user gets no feedback.
+
+After copying the URL to clipboard, nothing indicates success to the user. A brief toast or button label change would improve UX.
+
+website/app/Domain/Delectus/DelectusService.php (2)
+80-81: Prefer model constants over hardcoded status strings.
+
+Multiple places use raw strings ('playing', 'voting', 'lobby', 'answering') instead of the constants defined on Game and Round models (e.g., Game::STATUS_PLAYING, Game::STATUS_VOTING). Using constants prevents silent bugs from typos and makes refactoring safer.
+
+♻️ Example for findGamesNeedingAttention
+-        return Game::whereIn('status', ['playing', 'voting'])
+-            ->with(['rounds' => fn ($q) => $q->whereIn('status', ['answering', 'voting'])])
++        return Game::whereIn('status', [Game::STATUS_PLAYING, Game::STATUS_VOTING])
++            ->with(['rounds' => fn ($q) => $q->whereIn('status', [Round::STATUS_ANSWERING, Round::STATUS_VOTING])])
+Also applies to: 95-95, 100-100, 114-114, 124-125
+
+51-64: Lobby error logging omits the stack trace.
+
+Game-processing errors (line 47) log 'trace' => $e->getTraceAsString(), but lobby errors on line 58 do not. Adding the trace would help debug lobby-related failures.
+
+🔧 Proposed fix
+             } catch (\Throwable $e) {
+                 Log::error('Delectus: Error processing lobby', [
+                     'game_id' => $game->id,
+                     'game_code' => $game->code,
+                     'error' => $e->getMessage(),
++                    'trace' => $e->getTraceAsString(),
+                 ]);
+             }
+website/app/Domain/Game/Actions/EndGameAction.php (1)
+158-190: Multiple individual increment() calls per player per round generate many DB queries.
+
+Each increment() is a separate UPDATE query. For a game with P players and R rounds, this is up to ~5·P·R queries. Consider batching the stat deltas in memory and calling a single update() per player at the end.
+
+website/app/Domain/Game/Actions/JoinGameAction.php (1)
+40-40: Redundant !$existing->isBanned() guard.
+
+Line 37 already throws when the player is banned, so execution can never reach line 40 with isBanned() === true. The && ! $existing->isBanned() is dead logic.
+
+🧹 Proposed simplification
+-                if ($existing->isKicked() && ! $existing->isBanned()) {
++                if ($existing->isKicked()) {
+website/resources/js/pages/CreateGame.vue (2)
+193-197: authStore is initialized but never referenced.
+
+useAuthStore() is called on line 197 but authStore is not used anywhere in the template or handleCreate. If it's kept for a side effect (e.g., auto-init in the store constructor), consider adding a brief comment. Otherwise, remove it.
+
+200-215: Semantics of 0 meaning "unlimited" may surprise users or API consumers.
+
+max_edits: 0 and max_vote_changes: 0 mean "unlimited" in the UI (lines 48, 57), but 0 typically implies "none allowed." If the backend interprets 0 the same way, this is fine but worth a comment. If a future developer changes the backend to treat 0 as "no edits allowed," it would silently break. Consider using null or -1 for "unlimited" to be more explicit.
+
+website/app/Application/Http/Controllers/Api/V1/RoundController.php (1)
+137-167: New markReady endpoint looks well-structured.
+
+Authorization is implicitly handled via the player attribute from middleware. The broadcast is properly guarded with try/catch. One nit: the variable $answer on line 147 is the return of MarkReadyAction::execute() — if it returns an Answer model, the name is technically correct but could be clearer (e.g., $result or $playerAnswer) given the context is about readiness, not answer submission.
+
+website/tests/Feature/Api/KickPlayerTest.php (1)
+26-66: Consider extracting shared test setup into a trait or base class.
+
+KickPlayerTest, GameBanTest, and likely CoHostTest all share nearly identical setUp() and createGameWithPlayers() methods (create 3 guest players, create game, join, assign co-host). A shared trait (e.g., CreatesGameWithPlayers) would reduce duplication.
+
+website/tests/Feature/Mail/PasswordResetMailTest.php (1)
+55-68: Static analysis: $user on line 59 is assigned but never referenced.
+
+The User is created for its side effect (populating the DB), but the variable is unused. Suppress the warning by dropping the assignment.
+
+Proposed fix
+-        $user = User::factory()->create(['email' => 'route@example.com']);
++        User::factory()->create(['email' => 'route@example.com']);
+website/resources/js/pages/Game.vue (1)
+1459-1470: Unread counter increments by 1 regardless of how many messages arrived.
+
+The watcher fires on chatMessages.length change, but always does unreadCount.value++. If the store receives a batch of messages (e.g., on reconnect or state fetch), the count will be off.
+
+Track previous length to compute accurate delta
+-watch(() => gameStore.chatMessages.length, () => {
++watch(() => gameStore.chatMessages.length, (newLen, oldLen) => {
+     if (!chatOpen.value) {
+-        unreadCount.value++;
++        unreadCount.value += Math.max(1, newLen - (oldLen ?? 0));
+     } else {
+         nextTick(() => {
+             if (chatContainer.value) {
+                 chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+             }
+         });
+     }
+ });
+website/app/Application/Http/Controllers/Api/V1/GameController.php (3)
+477-477: Hardcoded Norwegian strings in system chat messages bypass i18n.
+
+Lines 477 and 536 embed Norwegian text ("ble sparket fra spillet av", "ble utestengt fra spillet av") and a hardcoded sender name 'Delectus'. If the app needs multi-language support, these should use a translation helper. Even if Norwegian-only for now, the magic string 'Delectus' should be extracted to a constant.
+
+Also applies to: 536-536
+
+251-257: Storing finished_reason inside the settings JSON is a data modeling concern.
+
+finished_reason is operational metadata, not a game setting. Mixing the two could cause confusion (e.g., if settings are cloned for rematch, the reason carries over). Consider a dedicated column or a separate metadata field.
+
+677-688: Remove unused $request parameter in keepalive method.
+
+The $request parameter is not used in the method body. While middleware accesses $request->attributes, that occurs before the controller method is invoked, so removing the parameter from the method signature is safe and aligns with clean code practices.
+
+In website/app/Application/Http/Controllers/Api/V1/GameController.php:
+
+> +    public function banPlayer(Request $request, string $code, string $playerId, GetGameByCodeAction $getGame): JsonResponse
++    {
++        $player = $request->attributes->get('player');
++        $game = $getGame->execute($code);
++
++        if (! $game) {
++            return response()->json(['error' => 'Game not found'], 404);
++        }
++
++        if ($game->isFinished()) {
++            return response()->json(['error' => 'Cannot ban players from a finished game'], 422);
++        }
++
++        if (! $game->isHostOrCoHost($player)) {
++            return response()->json(['error' => 'Only the host or co-host can ban players'], 403);
++        }
++
++        if ($playerId === $game->host_player_id) {
++            return response()->json(['error' => 'Cannot ban the host'], 422);
++        }
++
++        $request->validate([
++            'reason' => 'nullable|string|max:200',
++        ]);
++
++        $gamePlayer = $game->gamePlayers()
++            ->where('player_id', $playerId)
++            ->first();
++
++        if (! $gamePlayer) {
++            return response()->json(['error' => 'Player not found in this game'], 404);
++        }
++
++        $gamePlayer->update([
++            'is_active' => false,
++            'is_co_host' => false,
++            'kicked_by' => $player->id,
++            'banned_by' => $player->id,
++            'ban_reason' => $request->input('reason'),
++        ]);
++        $game->touch();
++
++        $bannedPlayer = Player::find($playerId);
++
++        if ($bannedPlayer) {
++            try {
++                broadcast(new PlayerKickedBroadcast($game, $bannedPlayer, $player->nickname, true, $request->input('reason')));
++                broadcast(new ChatMessageBroadcast($game, 'Delectus', "{$bannedPlayer->nickname} ble utestengt fra spillet av {$player->nickname}", true));
++            } catch (\Throwable $e) {
++                Log::error('Broadcast failed: player.banned', ['game' => $code, 'error' => $e->getMessage()]);
++            }
++        }
++
++        return response()->json([
++            'success' => true,
++            'player_id' => $playerId,
++        ]);
++    }
+⚠️ Potential issue | 🟠 Major
+
+🧩 Analysis chain
+🏁 Script executed:
+
+# Find the isHostOrCoHost method implementation
+ast-grep --pattern 'function isHostOrCoHost($$$) { $$$ }'
+Repository: ekstremedia/select-app
+
+Length of output: 48
+
+🏁 Script executed:
+
+# Also search more broadly for isHostOrCoHost definition
+rg 'isHostOrCoHost' -A 5 -B 2
+Repository: ekstremedia/select-app
+
+Length of output: 10079
+
+🏁 Script executed:
+
+# Find the Game model to understand the co-host structure
+fd 'Game.php' --type f
+Repository: ekstremedia/select-app
+
+Length of output: 108
+
+🏁 Script executed:
+
+# Read the Game.php file to see the complete isHostOrCoHost implementation
+cat -n website/app/Infrastructure/Models/Game.php | grep -A 15 "function isHostOrCoHost"
+Repository: ekstremedia/select-app
+
+Length of output: 585
+
+🏁 Script executed:
+
+# Search for how co_host is used in the Game model and gamePlayers
+rg 'is_co_host' -B 2 -A 2 website/app/Infrastructure/Models/Game.php
+Repository: ekstremedia/select-app
+
+Length of output: 406
+
+🏁 Script executed:
+
+# Check if there are any tests for the banPlayer or kickPlayer methods
+fd 'test' --type d | head -5
+Repository: ekstremedia/select-app
+
+Length of output: 198
+
+🏁 Script executed:
+
+# Look for relevant tests related to banning or kicking
+rg 'banPlayer|ban.*co.*host|kickPlayer' -t php -l
+Repository: ekstremedia/select-app
+
+Length of output: 279
+
+🏁 Script executed:
+
+# Search for tests related to ban/kick functionality
+fd '.*Test\.php' website/tests/ | xargs rg 'banPlayer|kickPlayer' -l
+Repository: ekstremedia/select-app
+
+Length of output: 50
+
+🏁 Script executed:
+
+# Check the routes file to understand API structure
+cat website/routes/api.php | grep -A 2 -B 2 'ban\|kick'
+Repository: ekstremedia/select-app
+
+Length of output: 1318
+
+🏁 Script executed:
+
+# Check if there's any documentation or comments about co-host permissions
+rg 'co.host|co-host' -i -B 2 -A 2 website/app/Domain/Game/ website/app/Application/Http/Controllers/Api/V1/GameController.php | head -50
+Repository: ekstremedia/select-app
+
+Length of output: 4574
+
+🏁 Script executed:
+
+# Look at UnbanPlayerAction for consistency
+cat website/app/Domain/Player/Actions/UnbanPlayerAction.php | head -50
+Repository: ekstremedia/select-app
+
+Length of output: 480
+
+Co-hosts can ban other co-hosts — inconsistent with permission hierarchy
+
+Line 502 checks isHostOrCoHost($player) to authorize banning, and line 506 only prevents banning the host. A co-host can ban another co-host, removing their co-host status. However, only the host can promote or demote co-hosts (see toggleCoHost() method). If co-hosts should not have authority over peer co-hosts, add a check to prevent co-host-to-co-host bans, or restrict banning co-hosts to the host only.
+
+🤖 Prompt for AI Agents
+In `@website/app/Application/Http/Controllers/Api/V1/GameController.php` around
+lines 489 - 546, The banPlayer method currently allows a co-host to ban another
+co-host because it uses isHostOrCoHost($player) for authorization and only
+prevents banning the host; add a guard before performing the update that
+prevents a co-host (i.e., a player who is not the host but for whom
+isHostOrCoHost($player) returns true) from banning a target GamePlayer who has
+is_co_host true — return a 403 (or 422 per project convention) in that case;
+reference the banPlayer function, the isHostOrCoHost($player) check, the
+GamePlayer record (e.g., $gamePlayer->is_co_host) and the existing
+toggleCoHost() behavior to ensure only the host can demote/promote co-hosts.
+In website/app/Application/Http/Controllers/Api/V1/RoundController.php:
+
+> +        } elseif ($round->isCompleted()) {
+             $response['answers'] = $round->answers()->with('player')->get()->map(fn ($a) => [
+                 'id' => $a->id,
+                 'player_id' => $a->player_id,
+                 'player_name' => $a->author_nickname ?? $a->player->nickname,
+                 'text' => $a->text,
+-                'votes_count' => $round->isCompleted() ? $a->votes_count : null,
++                'votes_count' => $a->votes_count,
+             ]);
+⚠️ Potential issue | 🟠 Major
+
+votes_count is not loaded — will always be null for completed rounds.
+
+The query on line 63 uses with('player') but does not call withCount('votes'). As a result, $a->votes_count on line 68 will be null (or rely on a default attribute). Compare with GameProcessor::handleVotingDeadline (line 355) which correctly uses ->withCount('votes').
+
+Proposed fix
+-        } elseif ($round->isCompleted()) {
+-            $response['answers'] = $round->answers()->with('player')->get()->map(fn ($a) => [
++        } elseif ($round->isCompleted()) {
++            $response['answers'] = $round->answers()->with('player')->withCount('votes')->get()->map(fn ($a) => [
+📝 Committable suggestion
+‼️ IMPORTANT
+Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+⬇️ Suggested change
+-        } elseif ($round->isCompleted()) {
+-            $response['answers'] = $round->a
+...
+
+[E-posten er avkuttet]  Se hele e-posten
+
+coderabbitai[bot] <notifications@github.com>
+16:48 (for 3 timer siden)
+til ekstremedia/select-app, Terje, Author
+
+@coderabbitai[bot] commented on this pull request.
+
+Actionable comments posted: 9
+
+Caution
+
+Some comments are outside the diff and can’t be posted inline due to platform limitations.
+
+⚠️ Outside diff range comments (2)
+docs/ARCHITECTURE.md (2)
+488-494: ⚠️ Potential issue | 🟡 Minor
+
+Stale instructions: router.js was deleted in the Inertia.js v2 migration.
+
+Step 2 references resources/js/router.js, but this file was removed (documented at line 94 of docs/2026-02-15.md). With Inertia, new pages need a route in routes/web.php instead.
+
+Suggested fix
+ ### Adding a New Vue Page
+
+ 1. Create component in `resources/js/pages/`
+-2. Add route in `resources/js/router.js` with appropriate guard
++2. Add route in `routes/web.php` using `Inertia::render('PageName')`
+ 3. Add navigation link in `resources/js/layouts/AppLayout.vue`
+ 4. Add translations to `resources/js/composables/useI18n.js` (both NO and EN)
+ 5. Build: `yarn build`
+344-346: ⚠️ Potential issue | 🟡 Minor
+
+game_players schema is missing new fields.
+
+The schema listing omits fields added in this PR: is_co_host, kicked_by, and ban-related columns. These are referenced throughout the codebase (e.g., isHostOrCoHost(), isKicked(), isBanned()).
+
+Suggested update
+ game_players
+-  game_id, player_id, score, is_active, joined_at
++  game_id, player_id, score, is_active, is_co_host, joined_at,
++  kicked_by, ban_reason
+🤖 Fix all issues with AI agents
+In `@CLAUDE.md`:
+- Around line 418-420: The docs use "max_answer_edits" but the code expects
+"max_edits" (see GameController::updateSettings and Game.vue), so update the
+documentation snippet to use "max_edits": <value> instead of "max_answer_edits";
+alternatively, if backward compatibility is desired, modify
+GameController::updateSettings to accept both keys by mapping "max_answer_edits"
+to the internal max_edits setting and document that both are supported.
+
+In `@docs/2026-02-15.md`:
+- Around line 123-131: The fenced code blocks are missing language specifiers;
+add the appropriate language tags to enable syntax highlighting—e.g., change the
+PHP block that begins with "$bearerToken = $request->bearerToken();" (and uses
+PersonalAccessToken::findToken and Player::where) to start with "```php", ensure
+the JSON example block is "```json", and the JavaScript block is "```js"; update
+the three affected fenced blocks accordingly so markdownlint MD040 is satisfied.
+
+In `@website/app/Application/Http/Controllers/Api/V1/GameController.php`:
+- Around line 699-746: The rematch flow omits the game's password when calling
+CreateGameAction::execute, causing protected games to lose their password; pass
+$oldGame->password as the fourth argument to createAction->execute($player,
+$oldGame->settings, $oldGame->is_public, $oldGame->password), and update
+CreateGameAction::execute to accept an optional flag (e.g., $passwordIsHashed =
+false) or detect hashed input so that when $passwordIsHashed is true it assigns
+the provided value directly to the game's password field instead of calling
+Hash::make again (ensure GameController::rematch sets that flag or otherwise
+invokes the code path that copies the hashed password).
+
+In `@website/app/Domain/Delectus/GameProcessor.php`:
+- Around line 142-152: The two broadcasts (LobbyExpiringBroadcast and
+ChatMessageBroadcast) are currently inside one try/catch so if the first fails
+the second is skipped; update GameProcessor to call each broadcast in its own
+try/catch: wrap broadcast(new LobbyExpiringBroadcast(...)) in a dedicated
+try/catch that logs errors (e.g., Log::error with context like 'broadcast
+failed: lobby.expiring', $game->code and $e->getMessage()), and separately wrap
+broadcast(new ChatMessageBroadcast(...)) in its own try/catch with a distinct
+log message (e.g., 'broadcast failed: chat.message') so each send is independent
+and failures are recorded.
+
+In `@website/app/Domain/Game/Actions/JoinGameAction.php`:
+- Around line 36-53: The rejoin paths in JoinGameAction.php update
+$existing->is_active without checking game capacity, allowing more than
+max_players; before calling $existing->update(...) in both the isKicked() branch
+and the generic "Rejoin" branch, compute the current active player count for the
+$game (e.g. $game->players()->where('is_active', true)->count() or an existing
+Game method) and compare against $game->max_players, throwing an
+InvalidArgumentException like 'Game is full' if capacity reached; only perform
+the update (and clear kicked_by) after the capacity check passes.
+
+In `@website/resources/js/pages/Game.vue`:
+- Around line 1504-1512: The phase watcher currently resets submitCount and
+voteCount unconditionally, wiping server-restored values during initial
+hydration (phase transitions null → 'playing'); update the watch(phase, ...)
+callback to only clear answerText, isEditing, isReady, submitCount, and
+voteCount when this is a real round transition (e.g., require oldPhase !== null
+and newPhase !== oldPhase or at least oldPhase !== null && newPhase ===
+'playing') so the watcher won’t reset counts restored by the myAnswer.edit_count
+watcher; adjust the logic in the phase watcher (the watcher around the phase
+ref) accordingly.
+
+In `@website/resources/js/pages/Register.vue`:
+- Around line 257-263: loginUrl currently embeds the raw value from
+getRedirectParam() into the login link; either ensure the Login page validates
+with getSafeRedirect(), or (preferred) sanitize here before embedding by passing
+the redirect through getSafeRedirect() and then encodeURIComponent; update the
+computed loginUrl to call getSafeRedirect(getRedirectParam()) (or validate
+non-null) so only safe redirects are included when building
+`/logg-inn?redirect=...`.
+
+In `@website/resources/js/pages/Welcome.vue`:
+- Around line 153-159: parseSentence currently builds letters by stripping
+non-letters then taking charAt(0), which yields empty strings for words that
+contain no letters; modify parseSentence to first compute cleaned =
+w.replace(/[^a-zA-ZæøåÆØÅ]/g, '') for each word and only include
+cleaned.charAt(0).toUpperCase() in the letters array when cleaned.length > 0
+(i.e., filter out words that become empty after the replace); keep building text
+from the original words as before.
+
+In `@website/resources/js/stores/gameStore.js`:
+- Around line 269-274: The reconnect path always passes the full
+data.game.settings?.time_between_rounds into _startResultsCountdown, causing the
+UI to show the full duration instead of remaining time; update the
+fetchGameState/restore logic to prefer a server-provided remaining value (e.g.
+data.results_time_remaining) or a deadline timestamp (e.g. data.next_round_at) —
+compute remainingSeconds = max(0, round(results_time_remaining) or
+round((next_round_at - now)/1000)) and pass that to _startResultsCountdown,
+falling back to data.game.settings?.time_between_rounds only if neither field is
+present.
+🧹 Nitpick comments (12)
+website/.env.example (1)
+64-71: Optional: reorder MAIL_ keys to satisfy dotenv-linter.*
+
+If your CI enforces dotenv-linter, it will keep warning on the MAIL_* key order. Consider reordering these lines to match the linter’s expected sequence.
+
+website/resources/js/pages/Register.vue (3)
+12-12: Manual string interpolation bypasses i18n library features.
+
+Using .replace('{count}', ...) is fragile—if the translation string changes the placeholder name or uses pluralization, this breaks silently. Consider using parameterized interpolation from your useI18n composable (e.g., t('auth.gameWithPlayers', { count: gamePreview.player_count })) if it supports it.
+
+29-57: Duplicated guest form template blocks.
+
+The two guest form sections (lines 29–57 and 170–198) are nearly identical, differing only in button severity and input id. Consider extracting a GuestJoinForm component that accepts a severity prop to eliminate the duplication and reduce future maintenance risk.
+
+Also applies to: 170-198
+
+226-226: isConvertingGuest is not reactive — won't update if auth state changes.
+
+This is a one-time snapshot. If authStore.isAuthenticated or authStore.isGuest changes during the component's lifetime, conditional blocks at lines 24, 71, and 163 won't re-evaluate. Wrap it in computed():
+
+Proposed fix
+-const isConvertingGuest = authStore.isAuthenticated && authStore.isGuest;
++const isConvertingGuest = computed(() => authStore.isAuthenticated && authStore.isGuest);
+website/resources/js/pages/Welcome.vue (1)
+185-199: Animation cycle silently stops if API fails and no initialGullkorn is available.
+
+When fetchAndAnimate catches an error and initialGullkorn is falsy, the function returns without scheduling another cycle or displaying anything. This leaves the acronym area permanently blank. If this is intentional degraded behavior, a brief comment would help; otherwise, consider retrying after a delay.
+
+Optional: retry after delay on total failure
+     if (initialGullkorn) {
+         animateWithSentence(initialGullkorn);
++    } else {
++        // Retry after delay if nothing to show
++        cycleTimeout = setTimeout(fetchAndAnimate, 5000);
+     }
+ }
+website/resources/js/pages/Login.vue (2)
+12-12: Prefer i18n interpolation over manual .replace().
+
+Most i18n libraries (including vue-i18n and common custom composables) support named interpolation natively, e.g. t('auth.gameWithPlayers', { count: gamePreview.player_count }). Manual .replace('{count}', ...) bypasses locale-aware formatting and is fragile if the placeholder appears more than once or the value needs formatting.
+
+29-65: Duplicate guest form blocks — consider extracting a shared component.
+
+The two guest form sections (lines 29–58 for invite flow, lines 157–185 for default flow) are nearly identical — differing only in button severity and the input id. Extracting a GuestJoinForm component (accepting severity and inputId as props) would eliminate the duplication and make future changes less error-prone.
+
+Also applies to: 149-186
+
+website/resources/views/emails/welcome.blade.php (1)
+61-65: Redundant font loading: both <link> and @import for the same Google Fonts URL.
+
+This is standard MJML-compiled output so it's expected, but worth noting that both mechanisms load the same resource. If you hand-maintain these templates going forward (rather than regenerating from MJML), you could drop one.
+
+website/app/Domain/Delectus/GameProcessor.php (1)
+376-399: rand() used instead of random_int() — inconsistent with stated CodeRabbit fix.
+
+The docs (2026-02-15.md, line 267) note that rand() was changed to random_int() for CreateBotPlayerAction. These two bot dispatch methods still use rand() at lines 380 and 397. While not a security concern for delay timing, using random_int() would be consistent.
+
+Suggested fix
+-            $delay = rand($minDelay, $maxDelay);
++            $delay = random_int($minDelay, $maxDelay);
+website/resources/js/layouts/AppLayout.vue (1)
+197-200: isActive may not re-evaluate reactively on Inertia page navigations.
+
+usePage() is called inside a plain function rather than a computed. While template :class bindings do track reactive deps during render, calling usePage() inside a non-computed helper can be fragile — if Vue's render pass doesn't deeply track the .url property through the function call, nav highlights won't update after navigation.
+
+A safer approach is to extract the URL into a computed ref once:
+
+Suggested refactor
++const currentPath = computed(() => usePage().url.split('?')[0]);
++
+ function isActive(path) {
+-    const url = usePage().url.split('?')[0];
+-    return url === path || url.startsWith(path + '/');
++    return currentPath.value === path || currentPath.value.startsWith(path + '/');
+ }
+website/resources/js/pages/Game.vue (1)
+768-792: Large component with many responsibilities — consider extracting composables.
+
+This single component is ~1560 lines handling lobby management, gameplay, voting, results, chat, settings, invites, bans, bots, and more. While functional, this creates high cognitive load for future maintainers.
+
+Consider extracting domain-specific logic into composables (e.g., useLobbyManagement, useChatCommands, useGameSettings) to improve maintainability. Not urgent, but worth tracking.
+
+website/app/Application/Http/Controllers/Api/V1/GameController.php (1)
+251-257: Storing finished_reason inside the settings JSON is unconventional.
+
+The finished_reason is game lifecycle metadata, not a user-configured setting. Storing it inside settings couples different concerns. A dedicated column (e.g., finished_reason) or a separate metadata JSON field would be cleaner.
+
+Not a functional issue, but worth noting for future schema clarity.
+
+In CLAUDE.md:
+
+> +  "max_answer_edits": 0,
++  "max_vote_changes": 0,
++  "allow_ready_check": true
+⚠️ Potential issue | 🟡 Minor
+
+Settings key mismatch: max_answer_edits in docs vs max_edits in code.
+
+The documentation shows "max_answer_edits": 0 but the codebase uses max_edits (see GameController::updateSettings line 808 and Game.vue line 856). This will confuse developers referencing the docs.
+
+Proposed fix
+-  "max_answer_edits": 0,
++  "max_edits": 0,
+📝 Committable suggestion
+‼️ IMPORTANT
+Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+⬇️ Suggested change
+-  "max_answer_edits": 0,
+-  "max_vote_changes": 0,
+-  "allow_ready_check": true
++  "max_edits": 0,
++  "max_vote_changes": 0,
++  "allow_ready_check": true
+🤖 Prompt for AI Agents
+In `@CLAUDE.md` around lines 418 - 420, The docs use "max_answer_edits" but the
+code expects "max_edits" (see GameController::updateSettings and Game.vue), so
+update the documentation snippet to use "max_edits": <value> instead of
+"max_answer_edits"; alternatively, if backward compatibility is desired, modify
+GameController::updateSettings to accept both keys by mapping "max_answer_edits"
+to the internal max_edits setting and document that both are supported.
+In docs/2026-02-15.md:
+
+> +```php
++$bearerToken = $request->bearerToken();
++if ($bearerToken) {
++    $tokenModel = PersonalAccessToken::findToken($bearerToken);
++    if ($tokenModel) {
++        return Player::where('user_id', $tokenModel->tokenable_id)->first();
++    }
++}
++```
+⚠️ Potential issue | 🟡 Minor
+
+Add language specifiers to fenced code blocks.
+
+Several code blocks in the changed sections lack language identifiers (e.g., lines 123, 161, 179). This triggers markdownlint MD040 warnings and prevents syntax highlighting.
+
+For example, the PHP block at line 123 should use ```php, the JSON block at line 161 should use ```json, and the JS block at line 179 should use ```js.
+
+🧰 Tools 🪛 markdownlint-cli2 (0.20.0)
+[warning] 130-130: Fenced code blocks should have a language specified
+
+(MD040, fenced-code-language)
+
+🤖 Prompt for AI Agents
+In `@docs/2026-02-15.md` around lines 123 - 131, The fenced code blocks are
+missing language specifiers; add the appropriate language tags to enable syntax
+highlighting—e.g., change the PHP block that begins with "$bearerToken =
+$request->bearerToken();" (and uses PersonalAccessToken::findToken and
+Player::where) to start with "```php", ensure the JSON example block is
+"```json", and the JavaScript block is "```js"; update the three affected fenced
+blocks accordingly so markdownlint MD040 is satisfied.
+In website/app/Application/Http/Controllers/Api/V1/GameController.php:
+
+> +    public function rematch(Request $request, string $code, GetGameByCodeAction $getGame, CreateGameAction $createAction, JoinGameAction $joinAction): JsonResponse
++    {
++        $player = $request->attributes->get('player');
++        $oldGame = $getGame->execute($code);
++
++        if (! $oldGame) {
++            return response()->json(['error' => 'Game not found'], 404);
++        }
++
++        if (! $oldGame->isFinished()) {
++            return response()->json(['error' => 'Game is not finished'], 422);
++        }
++
++        if (! $oldGame->isHostOrCoHost($player)) {
++            return response()->json(['error' => 'Only host or co-host can start a rematch'], 403);
++        }
++
++        // Create new game with same settings
++        $newGame = $createAction->execute(
++            $player,
++            $oldGame->settings,
++            $oldGame->is_public,
++        );
++
++        // Auto-join all other active players from the old game
++        $otherPlayers = $oldGame->activePlayers()->where('players.id', '!=', $player->id)->get();
++        foreach ($otherPlayers as $otherPlayer) {
++            try {
++                $joinAction->execute($newGame, $otherPlayer);
++            } catch (\Throwable $e) {
++                Log::warning('Rematch: Failed to auto-join player', [
++                    'player_id' => $otherPlayer->id,
++                    'error' => $e->getMessage(),
++                ]);
++            }
++        }
++
++        // Broadcast rematch to old game channel so all clients redirect
++        try {
++            broadcast(new GameRematchBroadcast($oldGame, $newGame->code));
++        } catch (\Throwable $e) {
++            Log::error('Broadcast failed: game.rematch', ['game' => $code, 'error' => $e->getMessage()]);
++        }
++
++        return response()->json([
++            'game' => $this->formatGame($newGame->fresh()),
++        ]);
++    }
+⚠️ Potential issue | 🟠 Major
+
+🧩 Analysis chain
+🏁 Script executed:
+
+#!/bin/bash
+# Check the CreateGameAction execute method
+find . -name "CreateGameAction.php" -type f | head -5
+Repository: ekstremedia/select-app
+
+Length of output: 120
+
+🏁 Script executed:
+
+#!/bin/bash
+# Read the CreateGameAction.php file
+cat -n ./website/app/Domain/Game/Actions/CreateGameAction.php
+Repository: ekstremedia/select-app
+
+Length of output: 2070
+
+🏁 Script executed:
+
+#!/bin/bash
+# Find and read the Game model to check password handling
+find . -path "*/Models/Game.php" -o -path "*/Game.php" -type f | grep -E "(Models|Infrastructure)" | head -1
+Repository: ekstremedia/select-app
+
+Length of output: 110
+
+🏁 Script executed:
+
+#!/bin/bash
+# Read the Game model
+cat -n ./website/app/Infrastructure/Models/Game.php | head -100
+Repository: ekstremedia/select-app
+
+Length of output: 3230
+
+🏁 Script executed:
+
+#!/bin/bash
+# Check all calls to createAction->execute to see if password is passed elsewhere
+rg -n "createAction->execute\|CreateGameAction" website/app/Application/Http/Controllers/ -A 3 -B 1
+Repository: ekstremedia/select-app
+
+Length of output: 48
+
+🏁 Script executed:
+
+#!/bin/bash
+# Search for CreateGameAction usage in the codebase
+rg -n "CreateGameAction" -A 3 -B 1
+Repository: ekstremedia/select-app
+
+Length of output: 5488
+
+🏁 Script executed:
+
+#!/bin/bash
+# Check how store() method calls CreateGameAction with password
+sed -n '88,120p' website/app/Application/Http/Controllers/Api/V1/GameController.php
+Repository: ekstremedia/select-app
+
+Length of output: 1288
+
+🏁 Script executed:
+
+#!/bin/bash
+# Confirm the rematch method's call to createAction->execute
+sed -n '699,730p' website/app/Application/Http/Controllers/Api/V1/GameController.php
+Repository: ekstremedia/select-app
+
+Length of output: 1377
+
+Password from original game is not forwarded to rematch — requires intentional fix.
+
+The rematch method calls createAction->execute() with only three arguments, omitting the password parameter. In the store() method, password is correctly passed as the fourth argument (line 98), but the rematch call (line 721) does not include it, defaulting to null. This means a password-protected game will create a rematch with no password protection.
+
+Additionally, since the password field stores a hash (via Hash::make()), passing the hashed password from $oldGame->password would cause it to be hashed again on rematch. The proper approach requires either: (1) storing the plain password separately, (2) copying the hashed password directly without re-hashing, or (3) documenting this as intentional behavior. Clarify the intended design for password handling in rematches and implement accordingly.
+
+🤖 Prompt for AI Agents
+In `@website/app/Application/Http/Controllers/Api/V1/GameController.php` around
+lines 699 - 746, The rematch flow omits the game's password when calling
+CreateGameAction::execute, causing protected games to lose their password; pass
+$oldGame->password as the fourth argument to createAction->execute($player,
+$oldGame->settings, $oldGame->is_public, $oldGame->password), and update
+CreateGameAction::execute to accept an optional flag (e.g., $passwordIsHashed =
+false) or detect hashed input so that when $passwordIsHashed is true it assigns
+the provided value directly to the game's password field instead of calling
+Hash::make again (ensure GameController::rematch sets that flag or otherwise
+invokes the code path that copies the hashed password).
+In website/app/Domain/Delectus/GameProcessor.php:
+
+> +            try {
++                broadcast(new LobbyExpiringBroadcast($game, self::LOBBY_WARNING_SECONDS));
++                broadcast(new ChatMessageBroadcast(
++                    $game,
++                    'Delectus',
++                    'Lobbyen stenges om 60 sekunder på grunn av inaktivitet. Trykk "Bli" for å holde den åpen.',
++                    true
++                ));
++            } catch (\Throwable $e) {
++                Log::error('Broadcast failed: lobby.expiring', ['game' => $game->code, 'error' => $e->getMessage()]);
++            }
+⚠️ Potential issue | 🟡 Minor
+
+Two broadcasts in one try/catch — ChatMessageBroadcast skipped if LobbyExpiringBroadcast fails.
+
+Elsewhere in this file (and in RoundController), each broadcast is wrapped in its own try/catch. This block groups two independent broadcasts, so a failure in the first prevents the chat message from being sent.
+
+Suggested fix
+         try {
+             broadcast(new LobbyExpiringBroadcast($game, self::LOBBY_WARNING_SECONDS));
++        } catch (\Throwable $e) {
++            Log::error('Broadcast failed: lobby.expiring', ['game' => $game->code, 'error' => $e->getMessage()]);
++        }
++
++        try {
+             broadcast(new ChatMessageBroadcast(
+                 $game,
+                 'Delectus',
+                 'Lobbyen stenges om 60 sekunder på grunn av inaktivitet. Trykk "Bli" for å holde den åpen.',
+                 true
+             ));
+         } catch (\Throwable $e) {
+-            Log::error('Broadcast failed: lobby.expiring', ['game' => $game->code, 'error' => $e->getMessage()]);
++            Log::error('Broadcast failed: chat.lobby_warning', ['game' => $game->code, 'error' => $e->getMessage()]);
+         }
+🤖 Prompt for AI Agents
+In `@website/app/Domain/Delectus/GameProcessor.php` around lines 142 - 152, The
+two broadcasts (LobbyExpiringBroadcast and ChatMessageBroadcast) are currently
+inside one try/catch so if the first fails the second is skipped; update
+GameProcessor to call each broadcast in its own try/catch: wrap broadcast(new
+LobbyExpiringBroadcast(...)) in a dedicated try/catch that logs errors (e.g.,
+Log::error with context like 'broadcast failed: lobby.expiring', $game->code and
+$e->getMessage()), and separately wrap broadcast(new ChatMessageBroadcast(...))
+in its own try/catch with a distinct log message (e.g., 'broadcast failed:
+chat.message') so each send is independent and failures are recorded.
+In website/app/Domain/Game/Actions/JoinGameAction.php:
+
+> +            if ($existing) {
++                if ($existing->isBanned()) {
++                    throw new \InvalidArgumentException('Du er utestengt fra dette spillet');
++                }
++                if ($existing->isKicked()) {
++                    // Kicked but not banned — allow rejoin, clear kicked_by
++                    $existing->update(['is_active' => true, 'kicked_by' => null]);
+ 
+-        $existing = GamePlayer::where('game_id', $game->id)
+-            ->where('player_id', $player->id)
+-            ->first();
++                    return $existing;
++                }
++                if ($existing->is_active) {
++                    throw new \InvalidArgumentException('Player already in game');
++                }
++                // Rejoin
++                $existing->update(['is_active' => true]);
+ 
+-        if ($existing) {
+-            if ($existing->is_active) {
+-                throw new \InvalidArgumentException('Player already in game');
++                return $existing;
+             }
+⚠️ Potential issue | 🟡 Minor
+
+Kicked/inactive player rejoin bypasses max_players capacity check.
+
+When a kicked or inactive player rejoins (lines 42 and 50), is_active is set back to true without checking whether the game is already at capacity. This could allow more players than max_players if the game filled up after the player was kicked or left.
+
+Suggested fix: check capacity before rejoin
+             if ($existing) {
+                 if ($existing->isBanned()) {
+                     throw new \InvalidArgumentException('Du er utestengt fra dette spillet');
+                 }
++
++                $maxPlayers = $game->settings['max_players'] ?? 10;
++                $currentCount = $game->gamePlayers()->where('is_active', true)->count();
++
+                 if ($existing->isKicked()) {
+-                    // Kicked but not banned — allow rejoin, clear kicked_by
++                    if ($currentCount >= $maxPlayers) {
++                        throw new \InvalidArgumentException('Game is full');
++                    }
+                     $existing->update(['is_active' => true, 'kicked_by' => null]);
+ 
+                     return $existing;
+                 }
+                 if ($existing->is_active) {
+                     throw new \InvalidArgumentException('Player already in game');
+                 }
+-                // Rejoin
++                if ($currentCount >= $maxPlayers) {
++                    throw new \InvalidArgumentException('Game is full');
++                }
+                 $existing->update(['is_active' => true]);
+ 
+                 return $existing;
+             }
+📝 Committable suggestion
+‼️ IMPORTANT
+Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+⬇️ Suggested change
+-            if ($existing) {
+-                if ($existing->isBanned()) {
+-                    throw new \InvalidArgumentException('Du er utestengt fra dette spillet');
+-                }
+-                if ($existing->isKicked()) {
+-                    // Kicked but not banned — allow rejoin, clear kicked_by
+-                    $existing->update(['is_active' => true, 'kicked_by' => null]);
+-
+-        $existing = GamePlayer::where('game_id', $game->id)
+-            ->where('player_id', $player->id)
+-            ->first();
+-                    return $existing;
+-                }
+-                if ($existing->is_active) {
+-                    throw new \InvalidArgumentException('Player already in game');
+-                }
+-                // Rejoin
+-                $existing->update(['is_active' => true]);
+-
+-        if ($existing) {
+-            if ($existing->is_active) {
+-                throw new \InvalidArgumentException('Player already in game');
+-                return $existing;
+-            }
++            if ($existing) {
++                if ($existing->isBanned()) {
++                    throw new \InvalidArgumentException('Du er utestengt fra dette spillet');
++                }
++
++                $maxPlayers = $game->settings['max_players'] ?? 10;
++                $currentCount = $game->gamePlayers()->where('is_active', true)->count();
++
++                if ($existing->isKicked()) {
++                    if ($currentCount >= $maxPlayers) {
++                        throw new \InvalidArgumentException('Game is full');
++                    }
++                    $existing->update(['is_active' => true, 'kicked_by' => null]);
++
++                    return $existing;
++                }
++                if ($existing->is_active) {
++                    throw new \InvalidArgumentException('Player already in game');
++                }
++                if ($currentCount >= $maxPlayers) {
++                    throw new \InvalidArgumentException('Game is full');
++                }
++                $existing->update(['is_active' => true]);
++
++                return $existing;
++            }
+🤖 Prompt for AI Agents
+In `@website/app/Domain/Game/Actions/JoinGameAction.php` around lines 36 - 53, The
+rejoin paths in JoinGameAction.php update $existing->is_active without checking
+game capacity, allowing more than max_players; before calling
+$existing->update(...) in both the isKicked() branch and the generic "Rejoin"
+branch, compute the current active player count for the $game (e.g.
+$game->players()->where('is_active', true)->count() or an existing Game method)
+and compare against $game->max_players, throwing an InvalidArgumentException
+like 'Game is full' if capacity reached; only perform the update (and clear
+kicked_by) after the capacity check passes.
+In website/resources/js/pages/Game.vue:
+
+> +// Reset state when phase changes
++watch(phase, (newPhase, oldPhase) => {
+     if (newPhase === 'playing') {
+         answerText.value = '';
+-        selectedVote.value = null;
+-    }
+-    if (newPhase === 'voting') {
+-        selectedVote.value = null;
++        isEditing.value = false;
++        isReady.value = false;
++        submitCount.value = 0;
++        voteCount.value = 0;
+     }
+⚠️ Potential issue | 🟠 Major
+
+Phase watcher resets submitCount/voteCount on initial page load, wiping server-restored values.
+
+When reconnecting mid-round, fetchGameState updates both phase (null → 'playing') and myAnswer.edit_count in the same tick. Vue flushes watchers in creation order, so the edit_count watcher (line 1491) correctly sets submitCount, but then the phase watcher (line 1505) fires afterward and resets it to 0 — losing the restored count.
+
+Fix: only reset on actual round transitions, not on initial hydration from null.
+
+Proposed fix
+ watch(phase, (newPhase, oldPhase) => {
+-    if (newPhase === 'playing') {
++    if (newPhase === 'playing' && oldPhase) {
+         answerText.value = '';
+         isEditing.value = false;
+         isReady.value = false;
+         submitCount.value = 0;
+         voteCount.value = 0;
+     }
+🤖 Prompt for AI Agents
+In `@website/resources/js/pages/Game.vue` around lines 1504 - 1512, The phase
+watcher currently resets submitCount and voteCount unconditionally, wiping
+server-restored values during initial hydration (phase transitions null →
+'playing'); update the watch(phase, ...) callback to only clear answerText,
+isEditing, isReady, submitCount, and voteCount when this is a real round
+transition (e.g., require oldPhase !== null and newPhase !== oldPhase or at
+least oldPhase !== null && newPhase === 'playing') so the watcher won’t reset
+counts restored by the myAnswer.edit_count watcher; adjust the logic in the
+phase watcher (the watcher around the phase ref) accordingly.
+In website/resources/js/pages/Register.vue:
+
+> +const loginUrl = computed(() => {
++    const redirect = getRedirectParam();
++    if (redirect) {
++        return `/logg-inn?redirect=${encodeURIComponent(redirect)}`;
++    }
++    return '/logg-inn';
++});
+⚠️ Potential issue | 🟡 Minor
+
+loginUrl forwards the raw redirect param without sanitization.
+
+getRedirectParam() returns the unvalidated query value. While it's URL-encoded, the Login page will receive the raw redirect. Ensure the Login page also applies the same getSafeRedirect validation, or sanitize here before embedding it.
+
+🤖 Prompt for AI Agents
+In `@website/resources/js/pages/Register.vue` around lines 257 - 263, loginUrl
+currently embeds the raw value from getRedirectParam() into the login link;
+either ensure the Login page validates with getSafeRedirect(), or (preferred)
+sanitize here before embedding by passing the redirect through getSafeRedirect()
+and then encodeURIComponent; update the computed loginUrl to call
+getSafeRedirect(getRedirectParam()) (or validate non-null) so only safe
+redirects are included when building `/logg-inn?redirect=...`.
+In website/resources/js/pages/Welcome.vue:
+
+> +function parseSentence(sentence) {
++    const words = sentence.split(/\s+/).filter(w => w.length > 0);
++    return {
++        letters: words.map(w => w.replace(/[^a-zA-ZæøåÆØÅ]/g, '').charAt(0).toUpperCase()),
++        text: words.join(' '),
++    };
++}
+⚠️ Potential issue | 🟡 Minor
+
+parseSentence can produce empty-string letters for non-alphabetic words.
+
+If a word contains only non-letter characters (e.g., numbers, punctuation), the regex strips everything and charAt(0) returns "", resulting in a blank acronym tile. Consider filtering out empty results after the replace:
+
+Proposed fix
+ function parseSentence(sentence) {
+     const words = sentence.split(/\s+/).filter(w => w.length > 0);
++    const letters = words
++        .map(w => w.replace(/[^a-zA-ZæøåÆØÅ]/g, '').charAt(0).toUpperCase())
++        .filter(l => l.length > 0);
+     return {
+-        letters: words.map(w => w.replace(/[^a-zA-ZæøåÆØÅ]/g, '').charAt(0).toUpperCase()),
+-        text: words.join(' '),
++        letters,
++        text: words.join(' '),
+     };
+ }
+📝 Committable suggestion
+‼️ IMPORTANT
+Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.
+
+⬇️ Suggested change
+-function parseSentence(sentence) {
+-    const words = sentence.split(/\s+/).filter(w => w.length > 0);
+-    return {
+-        letters: words.map(w => w.replace(/[^a-zA-ZæøåÆØÅ]/g, '').charAt(0).toUpperCase()),
+-        text: words.join(' '),
+-    };
+-}
++function parseSentence(sentence) {
++    const words = sentence.split(/\s+/).filter(w => w.length > 0);
++    const letters = words
++        .map(w => w.replace(/[^a-zA-ZæøåÆØÅ]/g, '').charAt(0).toUpperCase())
++        .filter(l => l.length > 0);
++    return {
++        letters,
++        text: words.join(' '),
++    };
++}
+🤖 Prompt for AI Agents
+In `@website/resources/js/pages/Welcome.vue` around lines 153 - 159, parseSentence
+currently builds letters by stripping non-letters then taking charAt(0), which
+yields empty strings for words that contain no letters; modify parseSentence to
+first compute cleaned = w.replace(/[^a-zA-ZæøåÆØÅ]/g, '') for each word and only
+include cleaned.charAt(0).toUpperCase() in the letters array when cleaned.length
+> 0 (i.e., filter out words that become empty after the replace); keep building
+text from the original words as before.
+In website/resources/js/stores/gameStore.js:
+
+> +            // Between-rounds timer for page-load recovery only
++            if (!_resultsInterval) {
++                const delay = data.game.settings?.time_between_rounds ?? 15;
++                _startResultsCountdown(delay);
++            }
++        }
+⚠️ Potential issue | 🟡 Minor
+
+Results countdown on reconnect uses full duration instead of remaining time.
+
+When fetchGameState recovers a "results" phase, _startResultsCountdown is called with the full time_between_rounds setting. If the user reconnects partway through the between-rounds pause, the countdown will show more time than actually remains. The server will broadcast .round.started when the real deadline passes, so the game still works — but the progress bar and timer text will be misleading until then.
+
+If the server can include a results_time_remaining or next_round_at timestamp in the state response, the client could compute the correct remaining seconds.
+
+🤖 Prompt for AI Agents
+In `@website/resources/js/stores/gameStore.js` around lines 269 - 274, The
+reconnect path always passes the full data.game.settings?.time_between_rounds
+into _startResultsCountdown, causing the UI to show the full duration instead of
+remaining time; update the fetchGameState/restore logic to prefer a
+server-provided remaining value (e.g. data.results_time_remaining) or a deadline
+timestamp (e.g. data.next_round_at) — compute remainingSeconds = max(0,
+round(results_time_remaining) or round((next_round_at - now)/1000)) and pass
+that to _startResultsCountdown, falling back to
+data.game.settings?.time_between_rounds only if neither field is present.
