@@ -19,8 +19,7 @@ vi.mock('../../composables/useI18n.js', () => ({
 
 vi.mock('../../services/api.js', () => ({
     api: {
-        auth: { forgotPassword: vi.fn(), resetPassword: vi.fn() },
-        profile: { updateNickname: vi.fn() },
+        auth: { forgotPassword: vi.fn() },
     },
 }));
 

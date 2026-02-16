@@ -133,16 +133,14 @@ describe('useI18n', () => {
             expect(t('game.passwordMinLength')).toBe('At least 4 characters');
         });
 
-        it('verifies lobby.noPlayers exists', async () => {
+        it('translates lobby.noPlayers in both locales', async () => {
             const useI18n = await loadUseI18n();
             const { t, toggleLocale } = useI18n();
 
-            expect(typeof t('lobby.noPlayers')).toBe('string');
             expect(t('lobby.noPlayers')).toBe('Ingen spillere ennå');
 
             toggleLocale();
 
-            expect(typeof t('lobby.noPlayers')).toBe('string');
             expect(t('lobby.noPlayers')).toBe('No players yet');
         });
     });

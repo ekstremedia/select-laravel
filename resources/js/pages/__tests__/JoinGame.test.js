@@ -77,8 +77,10 @@ describe('JoinGame.vue', () => {
         await input.trigger('input');
         await flushPromises();
 
-        // After handleInput, code ref should be uppercase
-        // We verify by submitting the form and checking the joinGame call
+        // Input value should be uppercased immediately
+        expect(input.element.value).toBe('ABCD');
+
+        // Also verify by submitting the form and checking the joinGame call
         mockGameStore.joinGame.mockResolvedValue({});
 
         const form = wrapper.find('form');

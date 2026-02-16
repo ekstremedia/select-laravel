@@ -1075,21 +1075,24 @@ describe('Game.vue', () => {
             const wrapper = mountGame();
             await flushPromises();
 
-            // The host player (id=1) should not have a manage button
-            // But other players should (since current user id=1 is the host, they can manage others)
-            // The manage button is the "..." icon button next to players
-            // Find player rows
-            const playerRows = wrapper.findAll('.space-y-1 > div');
-            // Host row should not have management button
-            // Other players should have the button
-            // Since player id 1 = auth player = host, canManagePlayer returns false for self and for host
-            // id 2 and 3 should have manage buttons
-            // The manage button has an SVG with the three dots pattern
-            // Let's check that the host row doesn't have the manage trigger
-            // We verify by checking that there's no button triggering on the host player
-            // Since the host is also the auth player, canManagePlayer(host) returns false for both reasons
+            // All player names should be rendered
             expect(wrapper.text()).toContain('Host');
             expect(wrapper.text()).toContain('Other');
+            expect(wrapper.text()).toContain('Third');
+
+            // The manage buttons (w-7 h-7 buttons with SVG) should exist for Other and Third
+            // but NOT for Host (id=1, who is also the auth player)
+            // Find all player row containers in the player list
+            const playerRows = wrapper.findAll('.space-y-1 > div');
+            // Host row (first player, id=1) should not have a manage button
+            const hostRow = playerRows.find(r => r.text().includes('Host'));
+            const hostManageBtn = hostRow?.findAll('button').find(b => b.classes().includes('w-7'));
+            expect(hostManageBtn).toBeFalsy();
+
+            // Other player rows should have manage buttons
+            const otherRow = playerRows.find(r => r.text().includes('Other'));
+            const otherManageBtn = otherRow?.findAll('button').find(b => b.classes().includes('w-7'));
+            expect(otherManageBtn).toBeTruthy();
         });
 
         it('showTimer returns true for playing, voting, and results phases', async () => {

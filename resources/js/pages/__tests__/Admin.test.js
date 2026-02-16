@@ -109,25 +109,21 @@ describe('Admin.vue', () => {
     });
 
     it('populates adminPlayers after players API resolves', async () => {
-        mountAdmin();
+        const wrapper = mountAdmin();
         await flushPromises();
 
-        // Verify the API was called and resolved with player data
         expect(api.admin.players).toHaveBeenCalled();
-        const result = await api.admin.players.mock.results[0].value;
-        expect(result.data.players).toHaveLength(1);
-        expect(result.data.players[0].nickname).toBe('Player1');
+        expect(wrapper.vm.adminPlayers).toHaveLength(1);
+        expect(wrapper.vm.adminPlayers[0].nickname).toBe('Player1');
     });
 
     it('populates adminGames after games API resolves', async () => {
-        mountAdmin();
+        const wrapper = mountAdmin();
         await flushPromises();
 
-        // Verify the API was called and resolved with game data
         expect(api.admin.games).toHaveBeenCalled();
-        const result = await api.admin.games.mock.results[0].value;
-        expect(result.data.games).toHaveLength(1);
-        expect(result.data.games[0].code).toBe('ABC123');
+        expect(wrapper.vm.adminGames).toHaveLength(1);
+        expect(wrapper.vm.adminGames[0].code).toBe('ABC123');
     });
 
     it('stats cards show correct values', async () => {

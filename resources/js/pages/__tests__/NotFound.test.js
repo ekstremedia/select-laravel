@@ -19,6 +19,10 @@ vi.mock('../../composables/useI18n.js', () => ({
 import { router } from '@inertiajs/vue3';
 
 describe('NotFound', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     function mountNotFound() {
         return mount(NotFound, {
             global: {

@@ -43,27 +43,23 @@ export function createWrapper(component, options = {}, shallow = false) {
     setActivePinia(pinia);
 
     const mountFn = shallow ? shallowMount : mount;
+    const { global: globalOpts, ...restOptions } = options;
 
     return mountFn(component, {
+        ...restOptions,
         global: {
             plugins: [pinia],
             stubs: {
                 ...stubComponents,
-                ...(options.global?.stubs || {}),
+                ...(globalOpts?.stubs || {}),
             },
             mocks: {
-                ...(options.global?.mocks || {}),
+                ...(globalOpts?.mocks || {}),
             },
             provide: {
-                ...(options.global?.provide || {}),
+                ...(globalOpts?.provide || {}),
             },
         },
-        ...options,
-        // Remove global from the spread to avoid duplication
-        global: undefined,
-        ...(options.props ? { props: options.props } : {}),
-        ...(options.slots ? { slots: options.slots } : {}),
-        ...(options.attachTo ? { attachTo: options.attachTo } : {}),
     });
 }
 

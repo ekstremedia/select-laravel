@@ -14,7 +14,7 @@ Multiplayer acronym word game. Players get a random acronym, write sentences mat
 
 Domain-Driven Design with three layers:
 
-```
+```text
 app/
 ├── Domain/           # Pure business logic (actions, no framework deps)
 │   ├── Delectus/     # Game orchestrator daemon (time-based transitions)
@@ -30,7 +30,7 @@ app/
 ```
 
 Frontend:
-```
+```text
 resources/js/
 ├── pages/            # Inertia page components
 ├── layouts/          # AppLayout.vue, GameLayout.vue

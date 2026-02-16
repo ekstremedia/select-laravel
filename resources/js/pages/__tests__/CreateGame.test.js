@@ -44,6 +44,7 @@ describe('CreateGame.vue', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         vi.clearAllMocks();
+        delete mockGameStore.gameCode;
     });
 
     it('renders form with all setting fields', () => {

@@ -70,8 +70,6 @@ describe('Login.vue', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         vi.clearAllMocks();
-        mockAuthStore.createGuest.mockReset();
-        mockAuthStore.login.mockReset();
         mockAuthStore.isAuthenticated = false;
         mockAuthStore.isGuest = false;
         mockAuthStore.nickname = null;
@@ -155,7 +153,15 @@ describe('Login.vue', () => {
         expect(router.visit).toHaveBeenCalledWith('/spill');
     });
 
-    it('getSafeRedirect returns /spill by default', async () => {
+    it('getSafeRedirect uses URL redirect param when present', async () => {
+        // Set redirect query param on window.location
+        const originalSearch = window.location.search;
+        Object.defineProperty(window, 'location', {
+            value: { ...window.location, search: '?redirect=/spill/ABCD' },
+            writable: true,
+            configurable: true,
+        });
+
         mockAuthStore.createGuest.mockResolvedValue({});
 
         const wrapper = mountLogin();
@@ -166,7 +172,14 @@ describe('Login.vue', () => {
         const guestForm = wrapper.findAll('form')[0];
         await guestForm.trigger('submit');
         await vi.waitFor(() => {
-            expect(router.visit).toHaveBeenCalledWith('/spill');
+            expect(router.visit).toHaveBeenCalledWith('/spill/ABCD');
+        });
+
+        // Restore
+        Object.defineProperty(window, 'location', {
+            value: { ...window.location, search: originalSearch },
+            writable: true,
+            configurable: true,
         });
     });
 

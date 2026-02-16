@@ -74,9 +74,20 @@ function mountArchiveGame(props = {}) {
 }
 
 describe('ArchiveGame', () => {
+    let originalClipboard;
+
     beforeEach(() => {
         setActivePinia(createPinia());
         vi.clearAllMocks();
+        originalClipboard = navigator.clipboard;
+    });
+
+    afterEach(() => {
+        Object.defineProperty(navigator, 'clipboard', {
+            value: originalClipboard,
+            writable: true,
+            configurable: true,
+        });
     });
 
     it('shows loading state initially', () => {

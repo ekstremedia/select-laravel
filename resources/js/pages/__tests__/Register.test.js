@@ -72,9 +72,6 @@ describe('Register.vue', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         vi.clearAllMocks();
-        mockAuthStore.createGuest.mockReset();
-        mockAuthStore.register.mockReset();
-        mockAuthStore.convertGuest.mockReset();
         mockAuthStore.isAuthenticated = false;
         mockAuthStore.isGuest = false;
         mockAuthStore.nickname = null;

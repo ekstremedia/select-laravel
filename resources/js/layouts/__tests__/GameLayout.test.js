@@ -3,10 +3,6 @@ import { createPinia, setActivePinia } from 'pinia';
 import { ref, reactive } from 'vue';
 import GameLayout from '../GameLayout.vue';
 
-const mockCurrentGame = ref(null);
-const mockLastPlayerEvent = ref(null);
-const mockLastSettingsEvent = ref(null);
-
 const mockGameStore = reactive({
     currentGame: null,
     lastPlayerEvent: null,

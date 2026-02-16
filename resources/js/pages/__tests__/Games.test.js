@@ -298,4 +298,19 @@ describe('Games.vue', () => {
 
         expect(api.games.list).toHaveBeenCalledTimes(3);
     });
+
+    it('stops polling on unmount', async () => {
+        api.games.list.mockResolvedValue({ data: { games: [], my_games: [] } });
+
+        const wrapper = mountGames();
+        await flushPromises();
+
+        expect(api.games.list).toHaveBeenCalledTimes(1);
+
+        wrapper.unmount();
+        vi.advanceTimersByTime(20000);
+        await flushPromises();
+
+        expect(api.games.list).toHaveBeenCalledTimes(1);
+    });
 });

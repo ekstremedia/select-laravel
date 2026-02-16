@@ -98,8 +98,8 @@ describe('Welcome.vue', () => {
     });
 
     it('stats section renders when stats loaded', async () => {
-        vi.useRealTimers();
         const wrapper = mountWelcome();
+        await vi.advanceTimersByTimeAsync(5000);
         await flushPromises();
 
         expect(wrapper.text()).toContain('42');

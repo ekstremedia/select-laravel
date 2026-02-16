@@ -298,7 +298,7 @@ describe('AppLayout.vue', () => {
 
         await vi.waitFor(() => {
             expect(mockAuthStore.logout).toHaveBeenCalled();
+            expect(router.visit).toHaveBeenCalledWith('/');
         });
-        expect(router.visit).toHaveBeenCalledWith('/');
     });
 });
