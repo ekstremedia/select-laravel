@@ -192,6 +192,7 @@
             <p class="text-sm text-slate-400 dark:text-slate-500">
                 {{ t('footer.tagline') }}
             </p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">v{{ appVersion }}-{{ gitHash }}</p>
         </footer>
 
         <Toast />
@@ -240,6 +241,9 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useI18n } from '../composables/useI18n.js';
 import { useDarkMode } from '../composables/useDarkMode.js';
 import { useNicknameDialog } from '../composables/useNicknameDialog.js';
+
+const appVersion = __APP_VERSION__;
+const gitHash = __APP_GIT_HASH__;
 
 const authStore = useAuthStore();
 const { isAuthenticated, isGuest, isAdmin, nickname: authNickname } = storeToRefs(authStore);

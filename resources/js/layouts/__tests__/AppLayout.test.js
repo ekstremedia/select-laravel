@@ -228,6 +228,13 @@ describe('AppLayout.vue', () => {
         expect(wrapper.text()).toContain('footer.tagline');
     });
 
+    it('renders version in footer', () => {
+        const wrapper = mountAppLayout();
+
+        const footer = wrapper.find('footer');
+        expect(footer.text()).toMatch(/v\d+\.\d+\.\d+-[a-f0-9]+/);
+    });
+
     it('shows logout button for authenticated non-guest in dropdown', async () => {
         mockAuthStore.isAuthenticated = true;
         mockAuthStore.isGuest = false;

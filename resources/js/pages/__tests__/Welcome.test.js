@@ -128,4 +128,11 @@ describe('Welcome.vue', () => {
         const darkModeButton = navButtons.find((b) => b.find('svg').exists());
         expect(darkModeButton).toBeTruthy();
     });
+
+    it('renders version in footer', () => {
+        const wrapper = mountWelcome();
+
+        const footer = wrapper.find('footer');
+        expect(footer.text()).toMatch(/^v\d+\.\d+\.\d+-[a-f0-9]+$/);
+    });
 });

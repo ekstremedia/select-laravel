@@ -1,9 +1,18 @@
 import { defineConfig } from 'vite';
+import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
 import laravel from 'laravel-vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
+const gitHash = execSync('git rev-parse --short HEAD').toString().trim();
+
 export default defineConfig({
+    define: {
+        __APP_VERSION__: JSON.stringify(pkg.version),
+        __APP_GIT_HASH__: JSON.stringify(gitHash),
+    },
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.js'],

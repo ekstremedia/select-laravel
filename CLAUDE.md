@@ -62,6 +62,18 @@ yarn test                     # Run all frontend tests (vitest)
 yarn test path/to/file        # Run specific test file
 ```
 
+## Versioning
+
+Version lives in `package.json` and is shown in the site footer. Bump before deploying:
+
+```bash
+yarn version:patch            # Bug fix:      1.0.0 → 1.0.1
+yarn version:minor            # New feature:  1.0.0 → 1.1.0
+yarn version:major            # Big change:   1.0.0 → 2.0.0
+```
+
+The git commit hash is appended automatically at build time (e.g. `v1.0.1-abc1234`).
+
 ## Conventions
 
 - Follow existing code patterns — check sibling files before creating new ones

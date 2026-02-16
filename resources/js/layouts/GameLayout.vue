@@ -230,7 +230,7 @@
             </div>
             <div class="flex gap-2 justify-end">
                 <Button :label="t('common.cancel')" severity="secondary" variant="outlined" @click="banDialogVisible = false" />
-                <Button :label="t('lobby.ban')" severity="danger" @click="confirmBan" />
+                <Button :label="t('lobby.ban')" severity="danger" :loading="banLoading" @click="confirmBan" />
             </div>
         </Dialog>
 
@@ -326,6 +326,7 @@ function openDropdown() {
 }
 
 function closeDropdown() {
+    playerActionOpenId.value = null;
     if (!dropdownRef.value) {
         dropdownOpen.value = false;
         dropdownVisible.value = false;
@@ -461,6 +462,7 @@ const banDialogVisible = ref(false);
 const banDialogPlayerId = ref(null);
 const banDialogNickname = ref('');
 const banReason = ref('');
+const banLoading = ref(false);
 
 function handleBanPlayer(player) {
     playerActionOpenId.value = null;
@@ -471,11 +473,14 @@ function handleBanPlayer(player) {
 }
 
 async function confirmBan() {
+    banLoading.value = true;
     try {
         await gameStore.banPlayer(gameStore.gameCode, banDialogPlayerId.value, banReason.value || null);
         banDialogVisible.value = false;
     } catch (err) {
         toast.add({ severity: 'error', summary: err.response?.data?.error || t('common.error'), life: 4000 });
+    } finally {
+        banLoading.value = false;
     }
 }
 

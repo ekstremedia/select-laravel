@@ -723,7 +723,7 @@
         </div>
         <div class="flex gap-2 justify-end">
             <Button :label="t('common.cancel')" severity="secondary" variant="outlined" @click="banDialogVisible = false" />
-            <Button :label="t('lobby.ban')" severity="danger" @click="confirmBan" />
+            <Button :label="t('lobby.ban')" severity="danger" :loading="banLoading" @click="confirmBan" />
         </div>
     </Dialog>
     <Dialog v-model:visible="nicknameDialog.visible.value" :header="t('guest.changeNickname')" modal :style="{ width: '22rem' }">
@@ -969,6 +969,7 @@ const banDialogVisible = ref(false);
 const banDialogPlayerId = ref(null);
 const banDialogNickname = ref('');
 const banReason = ref('');
+const banLoading = ref(false);
 const playerMenuRef = ref(null);
 const menuPlayer = ref(null);
 const hostMenuRef = ref(null);
@@ -1538,11 +1539,14 @@ function handleBanPlayer(playerId, nickname) {
 }
 
 async function confirmBan() {
+    banLoading.value = true;
     try {
         await gameStore.banPlayer(props.code, banDialogPlayerId.value, banReason.value || null);
         banDialogVisible.value = false;
     } catch (err) {
         error.value = err.response?.data?.error || t('common.error');
+    } finally {
+        banLoading.value = false;
     }
 }
 

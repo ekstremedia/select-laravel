@@ -111,7 +111,8 @@
         </section>
 
         <!-- Footer -->
-        <footer class="px-4 py-8">
+        <footer class="px-4 py-8 text-center">
+            <p class="text-xs text-slate-400 dark:text-slate-500">v{{ appVersion }}-{{ gitHash }}</p>
         </footer>
     </div>
 </template>
@@ -126,6 +127,9 @@ import { useAuthStore } from '../stores/authStore.js';
 import { api } from '../services/api.js';
 
 defineOptions({ layout: false });
+
+const appVersion = __APP_VERSION__;
+const gitHash = __APP_GIT_HASH__;
 
 const { t, toggleLocale, isNorwegian } = useI18n();
 const { isDark, toggleDark } = useDarkMode();
