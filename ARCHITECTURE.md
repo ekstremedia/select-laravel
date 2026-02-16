@@ -33,7 +33,7 @@ Create Game → Join Lobby → Start
 
 ### Phase Details
 
-**Lobby** — A player creates a game and receives a 6-character code (e.g. `CRF6BX`). Other players join using this code. The host starts when ready (minimum 2 players).
+**Lobby** — A player creates a game and receives a 5-character code (e.g. `CRF6B`). Other players join using this code. The host starts when ready (minimum 2 players).
 
 **Answering** — A random acronym is generated and displayed. Each player writes a sentence where every word starts with the corresponding letter. Players can mark themselves "ready" to skip the remaining timer. If all players are ready, voting starts immediately.
 
@@ -86,7 +86,12 @@ Bot players are also coordinated through Delectus — when a round starts, it di
 
 ### Acronym Generation
 
-The `AcronymGenerator` creates 3–6 letter acronyms using weighted letter selection. Common consonants (S, T, N, R) appear frequently while rare letters (Q, X, Z) are uncommon. The algorithm enforces at least one vowel in longer acronyms and prevents more than three consecutive consonants, ensuring every acronym is playable.
+The `AcronymGenerator` supports two modes, controlled by the `weighted_acronyms` game setting (default: off):
+
+- **Random** (default) — Every letter A–Z has an equal chance. This produces harder, more unpredictable acronyms.
+- **Weighted** (opt-in) — Common letters like S, T, N, R appear more often while rare letters like Q, X, Z almost never show up. At least one vowel is guaranteed in acronyms of 4+ letters, and no more than three consecutive consonants are allowed. This produces more playable acronyms.
+
+Both modes respect the `excluded_letters` setting and generate acronyms between the configured min/max length (default 3–6 letters).
 
 The `AcronymValidator` checks submitted sentences by comparing the first letter of each word against the acronym. It enforces exact word count (one word per letter) and only allows letters and basic punctuation.
 
@@ -346,7 +351,8 @@ Guests can convert to a full account at any time via `POST /auth/convert`. The e
   "max_edits": 0,
   "max_vote_changes": 0,
   "allow_ready_check": true,
-  "chat_enabled": true
+  "chat_enabled": true,
+  "weighted_acronyms": false
 }
 ```
 

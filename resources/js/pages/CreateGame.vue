@@ -109,6 +109,17 @@
                         @input="settings.excluded_letters = settings.excluded_letters.toUpperCase().replace(/[^A-Z]/g, '')"
                     />
                 </div>
+
+                <!-- Weighted acronyms -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <label for="weightedAcronyms" class="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                            {{ t('create.weightedAcronyms') }}
+                        </label>
+                        <p class="text-xs text-slate-400">{{ t('create.weightedAcronymsDesc') }}</p>
+                    </div>
+                    <ToggleSwitch v-model="settings.weighted_acronyms" inputId="weightedAcronyms" />
+                </div>
             </div>
 
             <!-- Visibility -->
@@ -191,6 +202,7 @@ const settings = reactive({
     acronym_length: 5,
     max_players: 8,
     excluded_letters: '',
+    weighted_acronyms: false,
     is_private: false,
     password: '',
     chat_enabled: true,
@@ -219,6 +231,7 @@ async function handleCreate() {
             allow_ready_check: settings.allow_ready_check,
             max_edits: settings.max_edits,
             max_vote_changes: settings.max_vote_changes,
+            weighted_acronyms: settings.weighted_acronyms,
         };
         if (settings.excluded_letters) {
             gameSettings.excluded_letters = settings.excluded_letters;
