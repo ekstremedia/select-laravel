@@ -288,6 +288,8 @@ const translations = {
         'create.maxVoteChangesShort': 'Maks stemmeendringer',
         'create.maxVoteChangesDesc': 'Antall ganger en spiller kan endre stemmen sin etter at den er avgitt. 0 = ubegrenset.',
         'create.unlimited': 'Ubegrenset',
+        'create.weightedAcronyms': 'Smarte akronymer',
+        'create.weightedAcronymsDesc': 'Av: helt tilfeldige bokstaver. På: bokstaver som S, T, N dukker opp oftere, sjeldne som Q, X, Z nesten aldri, og minst én vokal er garantert.',
 
         // Lobby - additional
         'lobby.bot': 'Bot',
@@ -616,6 +618,8 @@ const translations = {
         'create.maxVoteChangesShort': 'Max vote changes',
         'create.maxVoteChangesDesc': 'How many times a player can change their vote after casting it. 0 = unlimited.',
         'create.unlimited': 'Unlimited',
+        'create.weightedAcronyms': 'Smart acronyms',
+        'create.weightedAcronymsDesc': 'Off: fully random letters. On: common letters like S, T, N appear more often, rare ones like Q, X, Z almost never, and at least one vowel is guaranteed.',
 
         // Lobby - additional
         'lobby.bot': 'Bot',

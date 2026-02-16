@@ -25,6 +25,9 @@ class StartRoundAction
             $this->acronymGenerator->setExcludedLetters($excludedLetters);
         }
 
+        $weighted = $settings['weighted_acronyms'] ?? false;
+        $this->acronymGenerator->setWeighted($weighted);
+
         $acronym = $this->acronymGenerator->generate($minLength, $maxLength);
 
         $round = Round::create([

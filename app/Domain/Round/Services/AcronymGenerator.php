@@ -25,6 +25,8 @@ class AcronymGenerator
 
     private array $excludedLetters = [];
 
+    private bool $weighted = false;
+
     public function setExcludedLetters(string $excluded): self
     {
         $this->excludedLetters = array_map('strtoupper', str_split(preg_replace('/[^a-zA-Z]/', '', $excluded)));
@@ -32,9 +34,46 @@ class AcronymGenerator
         return $this;
     }
 
+    public function setWeighted(bool $weighted): self
+    {
+        $this->weighted = $weighted;
+
+        return $this;
+    }
+
     public function generate(int $minLength = 3, int $maxLength = 6): string
     {
         $length = rand($minLength, $maxLength);
+
+        if (! $this->weighted) {
+            return $this->generateRandom($length);
+        }
+
+        return $this->generateWeighted($length);
+    }
+
+    /**
+     * Pure random: equal chance for every letter A–Z.
+     */
+    private function generateRandom(int $length): string
+    {
+        $available = array_diff(range('A', 'Z'), $this->excludedLetters);
+        $available = array_values($available);
+        $acronym = '';
+
+        for ($i = 0; $i < $length; $i++) {
+            $acronym .= $available[array_rand($available)];
+        }
+
+        return $acronym;
+    }
+
+    /**
+     * Weighted: common letters appear more often, vowels are enforced
+     * in longer acronyms, and consecutive consonants are capped at 3.
+     */
+    private function generateWeighted(int $length): string
+    {
         $acronym = '';
         $vowelCount = 0;
         $consecutiveConsonants = 0;
