@@ -17,22 +17,43 @@ vi.mock('../../services/api.js', () => ({
             currentRound: vi.fn(),
             state: vi.fn(),
             chat: vi.fn(),
+            updateVisibility: vi.fn(),
+            updateSettings: vi.fn(),
+            kick: vi.fn(),
+            ban: vi.fn(),
+            unban: vi.fn(),
+            toggleCoHost: vi.fn(),
+            addBot: vi.fn(),
+            removeBot: vi.fn(),
+            end: vi.fn(),
+            keepalive: vi.fn(),
+            rematch: vi.fn(),
         },
         rounds: {
             submitAnswer: vi.fn(),
             submitVote: vi.fn(),
+            retractVote: vi.fn(),
+            markReady: vi.fn(),
         },
     },
 }));
 
 vi.mock('../../services/websocket.js', () => ({
-    joinGame: vi.fn(() => ({
-        _code: null,
-        here: vi.fn().mockReturnThis(),
-        joining: vi.fn().mockReturnThis(),
-        leaving: vi.fn().mockReturnThis(),
-        listen: vi.fn().mockReturnThis(),
-    })),
+    joinGame: vi.fn(() => {
+        const listeners = {};
+        const channel = {
+            _code: null,
+            _listeners: listeners,
+            here: vi.fn().mockReturnThis(),
+            joining: vi.fn().mockReturnThis(),
+            leaving: vi.fn().mockReturnThis(),
+            listen: vi.fn((event, cb) => {
+                listeners[event] = cb;
+                return channel;
+            }),
+        };
+        return channel;
+    }),
     leaveGame: vi.fn(),
 }));
 
@@ -43,7 +64,7 @@ vi.mock('../soundStore.js', () => ({
 }));
 
 import { api } from '../../services/api.js';
-import { leaveGame as wsLeaveGame } from '../../services/websocket.js';
+import { joinGame as wsJoinGame, leaveGame as wsLeaveGame } from '../../services/websocket.js';
 
 describe('gameStore', () => {
     beforeEach(() => {
@@ -386,6 +407,327 @@ describe('gameStore', () => {
             store.disconnectWebSocket();
 
             expect(wsLeaveGame).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('lastPlayerEvent', () => {
+        it('initial state should be null', () => {
+            const store = useGameStore();
+            expect(store.lastPlayerEvent).toBeNull();
+        });
+    });
+
+    describe('lastSettingsEvent', () => {
+        it('initial state should be null', () => {
+            const store = useGameStore();
+            expect(store.lastSettingsEvent).toBeNull();
+        });
+    });
+
+    describe('updateVisibility', () => {
+        it('calls api.games.updateVisibility with code and isPublic', async () => {
+            api.games.updateVisibility.mockResolvedValue({ data: { is_public: true } });
+
+            const store = useGameStore();
+            store.currentGame = { id: 'g1', code: 'VISGAM', is_public: false };
+
+            await store.updateVisibility('VISGAM', true);
+
+            expect(api.games.updateVisibility).toHaveBeenCalledWith('VISGAM', true);
+        });
+
+        it('updates currentGame.is_public from response', async () => {
+            api.games.updateVisibility.mockResolvedValue({ data: { is_public: true } });
+
+            const store = useGameStore();
+            store.currentGame = { id: 'g1', code: 'VISGAM', is_public: false };
+
+            await store.updateVisibility('VISGAM', true);
+
+            expect(store.currentGame.is_public).toBe(true);
+        });
+
+        it('updates currentGame.has_password from response when present', async () => {
+            api.games.updateVisibility.mockResolvedValue({ data: { is_public: false, has_password: true } });
+
+            const store = useGameStore();
+            store.currentGame = { id: 'g1', code: 'VISGAM', is_public: true, has_password: false };
+
+            await store.updateVisibility('VISGAM', false);
+
+            expect(store.currentGame.is_public).toBe(false);
+            expect(store.currentGame.has_password).toBe(true);
+        });
+    });
+
+    describe('updateSettings', () => {
+        it('calls api.games.updateSettings with code and payload', async () => {
+            const payload = { max_players: 8, time_limit: 60 };
+            api.games.updateSettings.mockResolvedValue({ data: { settings: payload, is_public: true } });
+
+            const store = useGameStore();
+            store.currentGame = { id: 'g1', code: 'SETGAM', settings: {}, is_public: false };
+
+            await store.updateSettings('SETGAM', payload);
+
+            expect(api.games.updateSettings).toHaveBeenCalledWith('SETGAM', payload);
+        });
+
+        it('updates currentGame.settings and currentGame.is_public from response', async () => {
+            const newSettings = { max_players: 8, time_limit: 60 };
+            api.games.updateSettings.mockResolvedValue({ data: { settings: newSettings, is_public: true } });
+
+            const store = useGameStore();
+            store.currentGame = { id: 'g1', code: 'SETGAM', settings: {}, is_public: false };
+
+            await store.updateSettings('SETGAM', newSettings);
+
+            expect(store.currentGame.settings).toEqual(newSettings);
+            expect(store.currentGame.is_public).toBe(true);
+        });
+
+        it('updates currentGame.has_password from response when present', async () => {
+            const newSettings = { max_players: 8 };
+            api.games.updateSettings.mockResolvedValue({ data: { settings: newSettings, is_public: false, has_password: true } });
+
+            const store = useGameStore();
+            store.currentGame = { id: 'g1', code: 'SETGAM', settings: {}, is_public: true, has_password: false };
+
+            await store.updateSettings('SETGAM', newSettings);
+
+            expect(store.currentGame.has_password).toBe(true);
+        });
+    });
+
+    describe('WebSocket event handlers', () => {
+        function setupStoreWithWebSocket() {
+            const store = useGameStore();
+            store.currentGame = {
+                id: 'g1',
+                code: 'WSCODE',
+                status: 'lobby',
+                is_public: true,
+                has_password: false,
+                settings: { chat_enabled: true },
+            };
+            store.players = [
+                { id: 'p1', nickname: 'Alice' },
+                { id: 'p2', nickname: 'Bob' },
+            ];
+            store.connectWebSocket('WSCODE');
+            const channel = wsJoinGame.mock.results[wsJoinGame.mock.results.length - 1].value;
+            return { store, listeners: channel._listeners };
+        }
+
+        it('.player.joined adds player to players array and sets lastPlayerEvent', () => {
+            const { store, listeners } = setupStoreWithWebSocket();
+            const newPlayer = { id: 'p3', nickname: 'Charlie' };
+
+            listeners['.player.joined']({ player: newPlayer });
+
+            expect(store.players).toContainEqual(newPlayer);
+            expect(store.lastPlayerEvent).toEqual({ type: 'joined', nickname: 'Charlie' });
+        });
+
+        it('.player.left removes player and sets lastPlayerEvent with nickname', () => {
+            const { store, listeners } = setupStoreWithWebSocket();
+
+            listeners['.player.left']({ player_id: 'p2' });
+
+            expect(store.players.find(p => p.id === 'p2')).toBeUndefined();
+            expect(store.lastPlayerEvent).toEqual({ type: 'left', nickname: 'Bob' });
+        });
+
+        it('.player.nickname_changed updates player nickname and sets lastPlayerEvent', () => {
+            const { store, listeners } = setupStoreWithWebSocket();
+
+            listeners['.player.nickname_changed']({
+                player_id: 'p1',
+                old_nickname: 'Alice',
+                new_nickname: 'AliceNew',
+            });
+
+            const player = store.players.find(p => p.id === 'p1');
+            expect(player.nickname).toBe('AliceNew');
+            expect(store.lastPlayerEvent).toEqual({
+                type: 'nickname_changed',
+                oldNickname: 'Alice',
+                newNickname: 'AliceNew',
+            });
+        });
+
+        it('.game.settings_changed updates currentGame.settings, is_public, has_password', () => {
+            const { store, listeners } = setupStoreWithWebSocket();
+            const newSettings = { chat_enabled: true, max_players: 10 };
+
+            listeners['.game.settings_changed']({
+                settings: newSettings,
+                is_public: false,
+                has_password: true,
+            });
+
+            expect(store.currentGame.settings).toEqual(newSettings);
+            expect(store.currentGame.is_public).toBe(false);
+            expect(store.currentGame.has_password).toBe(true);
+        });
+
+        it('.game.settings_changed detects chat_enabled change and sets lastSettingsEvent', () => {
+            const { store, listeners } = setupStoreWithWebSocket();
+
+            listeners['.game.settings_changed']({
+                settings: { chat_enabled: false },
+                changed_by: 'Alice',
+            });
+
+            expect(store.lastSettingsEvent).not.toBeNull();
+            expect(store.lastSettingsEvent.changes).toContainEqual({ type: 'chat_disabled' });
+            expect(store.lastSettingsEvent.changedBy).toBe('Alice');
+        });
+
+        it('.game.settings_changed detects is_public change and sets lastSettingsEvent', () => {
+            const { store, listeners } = setupStoreWithWebSocket();
+
+            listeners['.game.settings_changed']({
+                is_public: false,
+                changed_by: 'Bob',
+            });
+
+            expect(store.lastSettingsEvent).not.toBeNull();
+            expect(store.lastSettingsEvent.changes).toContainEqual({ type: 'visibility_private' });
+        });
+
+        it('.game.settings_changed detects password_changed and sets lastSettingsEvent with password', () => {
+            const { store, listeners } = setupStoreWithWebSocket();
+
+            listeners['.game.settings_changed']({
+                password_changed: true,
+                new_password: 'secret123',
+                changed_by: 'Alice',
+            });
+
+            expect(store.lastSettingsEvent).not.toBeNull();
+            expect(store.lastSettingsEvent.changes).toContainEqual({ type: 'password_changed', password: 'secret123' });
+        });
+
+        it('.game.settings_changed does NOT set lastSettingsEvent when no relevant changes', () => {
+            const { store, listeners } = setupStoreWithWebSocket();
+
+            listeners['.game.settings_changed']({
+                settings: { chat_enabled: true, max_players: 10 },
+            });
+
+            expect(store.lastSettingsEvent).toBeNull();
+        });
+    });
+
+    describe('addBot', () => {
+        it('adds player to local list', async () => {
+            const botPlayer = { id: 'bot-1', nickname: 'Bot 1', is_bot: true };
+            api.games.addBot.mockResolvedValue({ data: { player: botPlayer } });
+
+            const store = useGameStore();
+            store.players = [{ id: 'p1', nickname: 'Alice' }];
+
+            await store.addBot('BOTGAM');
+
+            expect(api.games.addBot).toHaveBeenCalledWith('BOTGAM');
+            expect(store.players).toContainEqual(botPlayer);
+            expect(store.players).toHaveLength(2);
+        });
+
+        it('does not add duplicate bot player', async () => {
+            const botPlayer = { id: 'bot-1', nickname: 'Bot 1', is_bot: true };
+            api.games.addBot.mockResolvedValue({ data: { player: botPlayer } });
+
+            const store = useGameStore();
+            store.players = [{ id: 'bot-1', nickname: 'Bot 1', is_bot: true }];
+
+            await store.addBot('BOTGAM');
+
+            expect(store.players).toHaveLength(1);
+        });
+    });
+
+    describe('removeBot', () => {
+        it('removes player from local list', async () => {
+            api.games.removeBot.mockResolvedValue({ data: { player_id: 'bot-1' } });
+
+            const store = useGameStore();
+            store.players = [
+                { id: 'p1', nickname: 'Alice' },
+                { id: 'bot-1', nickname: 'Bot 1', is_bot: true },
+            ];
+
+            await store.removeBot('BOTGAM', 'bot-1');
+
+            expect(api.games.removeBot).toHaveBeenCalledWith('BOTGAM', 'bot-1');
+            expect(store.players).toHaveLength(1);
+            expect(store.players[0].id).toBe('p1');
+        });
+    });
+
+    describe('kickPlayer', () => {
+        it('removes player from local list', async () => {
+            api.games.kick.mockResolvedValue({ data: { player_id: 'p2' } });
+
+            const store = useGameStore();
+            store.players = [
+                { id: 'p1', nickname: 'Alice' },
+                { id: 'p2', nickname: 'Bob' },
+            ];
+
+            await store.kickPlayer('KICKGM', 'p2');
+
+            expect(api.games.kick).toHaveBeenCalledWith('KICKGM', 'p2');
+            expect(store.players).toHaveLength(1);
+            expect(store.players[0].id).toBe('p1');
+        });
+    });
+
+    describe('banPlayer', () => {
+        it('removes player from local list', async () => {
+            api.games.ban.mockResolvedValue({ data: { player_id: 'p2' } });
+
+            const store = useGameStore();
+            store.players = [
+                { id: 'p1', nickname: 'Alice' },
+                { id: 'p2', nickname: 'Bob' },
+            ];
+
+            await store.banPlayer('BANGAM', 'p2', 'cheating');
+
+            expect(api.games.ban).toHaveBeenCalledWith('BANGAM', 'p2', 'cheating');
+            expect(store.players).toHaveLength(1);
+            expect(store.players[0].id).toBe('p1');
+        });
+    });
+
+    describe('markReady', () => {
+        it('calls API and updates readyCount and totalPlayersForReady', async () => {
+            api.rounds.markReady.mockResolvedValue({ data: { ready_count: 3, total_players: 5 } });
+
+            const store = useGameStore();
+
+            const result = await store.markReady('round-1', true);
+
+            expect(api.rounds.markReady).toHaveBeenCalledWith('round-1', true);
+            expect(store.readyCount).toBe(3);
+            expect(store.totalPlayersForReady).toBe(5);
+            expect(result).toEqual({ ready_count: 3, total_players: 5 });
+        });
+    });
+
+    describe('retractVote', () => {
+        it('calls API and clears myVote', async () => {
+            api.rounds.retractVote.mockResolvedValue({});
+
+            const store = useGameStore();
+            store.myVote = { id: 'v1', answer_id: 'a1' };
+
+            await store.retractVote('round-1');
+
+            expect(api.rounds.retractVote).toHaveBeenCalledWith('round-1');
+            expect(store.myVote).toBeNull();
         });
     });
 });

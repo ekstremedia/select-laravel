@@ -79,4 +79,71 @@ describe('useI18n', () => {
         expect(isNorwegian.value).toBe(false);
         expect(t('cta.play')).toBe('Play now');
     });
+
+    describe('game event translations', () => {
+        it('returns Norwegian translations for game events', async () => {
+            const useI18n = await loadUseI18n();
+            const { t } = useI18n();
+
+            expect(t('game.playerJoined')).toBe('ble med');
+            expect(t('game.playerLeft')).toBe('forlot spillet');
+            expect(t('game.nicknameChanged')).toBe('skiftet navn til');
+            expect(t('game.chatEnabled')).toBe('aktiverte chat');
+            expect(t('game.chatDisabled')).toBe('deaktiverte chat');
+            expect(t('game.visibilityPublic')).toBe('gjorde spillet offentlig');
+            expect(t('game.visibilityPrivate')).toBe('gjorde spillet privat');
+            expect(t('game.passwordChanged')).toBe('endret passordet');
+            expect(t('game.passwordChangedTo')).toBe('satte passordet til:');
+        });
+
+        it('returns English translations for game events', async () => {
+            localStorage.setItem('select-locale', 'en');
+
+            const useI18n = await loadUseI18n();
+            const { t } = useI18n();
+
+            expect(t('game.playerJoined')).toBe('joined');
+            expect(t('game.playerLeft')).toBe('left the game');
+            expect(t('game.nicknameChanged')).toBe('is now known as');
+            expect(t('game.chatEnabled')).toBe('enabled chat');
+            expect(t('game.chatDisabled')).toBe('disabled chat');
+            expect(t('game.visibilityPublic')).toBe('made the game public');
+            expect(t('game.visibilityPrivate')).toBe('made the game private');
+            expect(t('game.passwordChanged')).toBe('changed the password');
+            expect(t('game.passwordChangedTo')).toBe('set the password to:');
+        });
+
+        it('returns Norwegian translations for password actions', async () => {
+            const useI18n = await loadUseI18n();
+            const { t } = useI18n();
+
+            expect(t('game.setPassword')).toBe('Sett passord');
+            expect(t('game.changePassword')).toBe('Endre passord');
+            expect(t('game.passwordMinLength')).toBe('Minst 4 tegn');
+        });
+
+        it('returns English translations for password actions', async () => {
+            localStorage.setItem('select-locale', 'en');
+
+            const useI18n = await loadUseI18n();
+            const { t } = useI18n();
+
+            expect(t('game.setPassword')).toBe('Set password');
+            expect(t('game.changePassword')).toBe('Change password');
+            expect(t('game.passwordMinLength')).toBe('At least 4 characters');
+        });
+
+        it('verifies lobby.noPlayers exists', async () => {
+            const useI18n = await loadUseI18n();
+            const { t, toggleLocale } = useI18n();
+
+            expect(typeof t('lobby.noPlayers')).toBe('string');
+            expect(t('lobby.noPlayers')).toBe('Ingen spillere ennå');
+
+            toggleLocale();
+
+            expect(typeof t('lobby.noPlayers')).toBe('string');
+            expect(t('lobby.noPlayers')).toBe('No players yet');
+        });
+    });
 });
