@@ -42,7 +42,7 @@ resources/js/
 
 ## Key Patterns
 
-- Game pages use `GameLayout.vue` with `layout: false` — they skip `AppLayout.vue`
+- Game pages (Game.vue, GameSpectate.vue) use `defineOptions({ layout: false })` to skip AppLayout and wrap their content with `<GameLayout>` directly
 - All game events broadcast on presence channel `game.{code}` via Laravel Reverb
 - Broadcasting events extend `ShouldBroadcastNow` in `app/Application/Broadcasting/Events/`
 - Controllers are thin: validate → call domain action → return response
@@ -77,7 +77,7 @@ The git commit hash is appended automatically at build time (e.g. `v1.0.1-abc123
 ## Conventions
 
 - Follow existing code patterns — check sibling files before creating new ones
-- Use Eloquent relationships, avoid `DB::` facade
+- Prefer Eloquent relationships; use `DB::` only when necessary for performance or complexity
 - Use Form Request classes for validation (not inline)
 - PHPUnit for all backend tests (convert any Pest tests to PHPUnit)
 - Vue components use Composition API with `<script setup>`

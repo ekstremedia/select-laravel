@@ -89,7 +89,7 @@
                                     <button
                                         v-if="canManagePlayer(player)"
                                         class="player-action-cog ml-auto p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                        :class="{ 'ml-2': player.id === hostPlayerId || player.is_co_host }"
+                                        :class="{ 'ml-2': player.is_co_host }"
                                         @click.stop="togglePlayerActions(player.id)"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5 text-slate-400">

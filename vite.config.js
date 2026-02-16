@@ -6,7 +6,12 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
-const gitHash = execSync('git rev-parse --short HEAD').toString().trim();
+let gitHash = 'unknown';
+try {
+    gitHash = execSync('git rev-parse --short HEAD').toString().trim();
+} catch {
+    // .git may not be available in Docker/CI builds
+}
 
 export default defineConfig({
     define: {
