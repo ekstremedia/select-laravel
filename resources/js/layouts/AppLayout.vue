@@ -261,8 +261,12 @@ function openNicknameDialog() {
     showNicknameDialog.value = true;
     menuOpen.value = false;
     setTimeout(() => {
-        nicknameInputRef.value?.$el?.focus();
-    }, 100);
+        const el = nicknameInputRef.value?.$el;
+        if (el) {
+            if (el.tagName === 'INPUT') el.focus();
+            else el.querySelector?.('input')?.focus();
+        }
+    }, 350);
 }
 
 async function submitNickname() {

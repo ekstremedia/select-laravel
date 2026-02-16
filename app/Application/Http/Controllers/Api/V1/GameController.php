@@ -555,10 +555,6 @@ class GameController extends Controller
             return response()->json(['error' => 'Spillet ble ikke funnet.'], 404);
         }
 
-        if (! $game->isInLobby()) {
-            return response()->json(['error' => 'Kan bare oppheve utestengelse i lobbyen.'], 422);
-        }
-
         if (! $game->isHostOrCoHost($player)) {
             return response()->json(['error' => 'Bare verten eller medverten kan oppheve utestengelse.'], 403);
         }

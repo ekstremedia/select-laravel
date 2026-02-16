@@ -1,100 +1,100 @@
 {
-  "_gameStore-BOnw8-vt.js": {
-    "file": "assets/gameStore-BOnw8-vt.js",
+  "_gameStore-Dza1nP_v.js": {
+    "file": "assets/gameStore-Dza1nP_v.js",
     "name": "gameStore",
     "imports": [
       "resources/js/app.js"
     ],
     "dynamicImports": [
-      "_howler-BPVrIPIA.js"
+      "_howler-NQDo3uE0.js"
     ]
   },
-  "_howler-BPVrIPIA.js": {
-    "file": "assets/howler-BPVrIPIA.js",
+  "_howler-NQDo3uE0.js": {
+    "file": "assets/howler-NQDo3uE0.js",
     "name": "howler",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js"
     ]
   },
-  "_index-3nDrhvS_.js": {
-    "file": "assets/index-3nDrhvS_.js",
+  "_index-1j-TzDj1.js": {
+    "file": "assets/index-1j-TzDj1.js",
     "name": "index",
     "imports": [
       "resources/js/app.js"
     ]
   },
-  "_index-BNxanb9c.js": {
-    "file": "assets/index-BNxanb9c.js",
+  "_index-BIO9vAna.js": {
+    "file": "assets/index-BIO9vAna.js",
     "name": "index",
     "imports": [
       "resources/js/app.js"
     ]
   },
-  "_index-CGC46A3j.js": {
-    "file": "assets/index-CGC46A3j.js",
+  "_index-BKKH4_c-.js": {
+    "file": "assets/index-BKKH4_c-.js",
     "name": "index",
     "imports": [
       "resources/js/app.js",
-      "_index-CUkeIeZJ.js"
+      "_index-Cq6svf21.js",
+      "_index-1j-TzDj1.js",
+      "_index-C6JQhXG2.js"
     ]
   },
-  "_index-COXOWVZ6.js": {
-    "file": "assets/index-COXOWVZ6.js",
+  "_index-BS2nrofy.js": {
+    "file": "assets/index-BS2nrofy.js",
+    "name": "index",
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "_index-C6JQhXG2.js": {
+    "file": "assets/index-C6JQhXG2.js",
+    "name": "index",
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "_index-Cq6svf21.js": {
+    "file": "assets/index-Cq6svf21.js",
+    "name": "index",
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "_index-D4PJhSFh.js": {
+    "file": "assets/index-D4PJhSFh.js",
     "name": "index",
     "imports": [
       "resources/js/app.js",
-      "_index-PE8TTLQG.js",
-      "_index-CUkeIeZJ.js",
-      "_index-_v6AJgCX.js"
+      "_index-1j-TzDj1.js"
     ]
   },
-  "_index-CUkeIeZJ.js": {
-    "file": "assets/index-CUkeIeZJ.js",
+  "_index-DZsesr37.js": {
+    "file": "assets/index-DZsesr37.js",
     "name": "index",
     "imports": [
       "resources/js/app.js"
     ]
   },
-  "_index-DVa01ObJ.js": {
-    "file": "assets/index-DVa01ObJ.js",
-    "name": "index",
-    "imports": [
-      "resources/js/app.js"
-    ]
-  },
-  "_index-DwbqiQb_.js": {
-    "file": "assets/index-DwbqiQb_.js",
+  "_index-n8juTW55.js": {
+    "file": "assets/index-n8juTW55.js",
     "name": "index",
     "imports": [
       "resources/js/app.js",
-      "_index-PE8TTLQG.js"
+      "_index-Cq6svf21.js"
     ]
   },
-  "_index-PE8TTLQG.js": {
-    "file": "assets/index-PE8TTLQG.js",
-    "name": "index",
-    "imports": [
-      "resources/js/app.js"
-    ]
-  },
-  "_index-_v6AJgCX.js": {
-    "file": "assets/index-_v6AJgCX.js",
-    "name": "index",
-    "imports": [
-      "resources/js/app.js"
-    ]
-  },
-  "_useGameAnimations-DdfGayBq.js": {
-    "file": "assets/useGameAnimations-DdfGayBq.js",
+  "_useGameAnimations-PXPL6g-E.js": {
+    "file": "assets/useGameAnimations-PXPL6g-E.js",
     "name": "useGameAnimations",
     "imports": [
       "resources/js/app.js",
-      "_gameStore-BOnw8-vt.js"
+      "_gameStore-Dza1nP_v.js"
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-CrtpcBuc.css",
+    "file": "assets/app-hrljTDdZ.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -103,7 +103,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-BwCVW8jD.js",
+    "file": "assets/app-Cs7Rw0vw.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -131,55 +131,55 @@
     ]
   },
   "resources/js/pages/Admin.vue": {
-    "file": "assets/Admin-CqdH5pdo.js",
+    "file": "assets/Admin-v8r7-IH0.js",
     "name": "Admin",
     "src": "resources/js/pages/Admin.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-3nDrhvS_.js",
-      "_index-COXOWVZ6.js",
-      "_index-CGC46A3j.js",
-      "_index-BNxanb9c.js",
-      "_index-PE8TTLQG.js",
-      "_index-CUkeIeZJ.js",
-      "_index-_v6AJgCX.js"
+      "_index-BS2nrofy.js",
+      "_index-BKKH4_c-.js",
+      "_index-D4PJhSFh.js",
+      "_index-DZsesr37.js",
+      "_index-Cq6svf21.js",
+      "_index-1j-TzDj1.js",
+      "_index-C6JQhXG2.js"
     ]
   },
   "resources/js/pages/Archive.vue": {
-    "file": "assets/Archive-Dv6p6Z1B.js",
+    "file": "assets/Archive-C9q5Uhxr.js",
     "name": "Archive",
     "src": "resources/js/pages/Archive.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-3nDrhvS_.js"
+      "_index-BS2nrofy.js"
     ]
   },
   "resources/js/pages/ArchiveGame.vue": {
-    "file": "assets/ArchiveGame-0FKENCqE.js",
+    "file": "assets/ArchiveGame-Ft5pxMH0.js",
     "name": "ArchiveGame",
     "src": "resources/js/pages/ArchiveGame.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-3nDrhvS_.js"
+      "_index-BS2nrofy.js"
     ]
   },
   "resources/js/pages/CreateGame.vue": {
-    "file": "assets/CreateGame-ttka9iBe.js",
+    "file": "assets/CreateGame-CkFdelj9.js",
     "name": "CreateGame",
     "src": "resources/js/pages/CreateGame.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-DVa01ObJ.js",
-      "_index-BNxanb9c.js",
-      "_gameStore-BOnw8-vt.js"
+      "_index-BIO9vAna.js",
+      "_index-DZsesr37.js",
+      "_gameStore-Dza1nP_v.js"
     ]
   },
   "resources/js/pages/ErrorPage.vue": {
-    "file": "assets/ErrorPage-y_d3BbJu.js",
+    "file": "assets/ErrorPage-C3HMpC_f.js",
     "name": "ErrorPage",
     "src": "resources/js/pages/ErrorPage.vue",
     "isDynamicEntry": true,
@@ -188,7 +188,7 @@
     ]
   },
   "resources/js/pages/ForgotPassword.vue": {
-    "file": "assets/ForgotPassword-sY82Q48K.js",
+    "file": "assets/ForgotPassword-C9RKYCYe.js",
     "name": "ForgotPassword",
     "src": "resources/js/pages/ForgotPassword.vue",
     "isDynamicEntry": true,
@@ -197,91 +197,91 @@
     ]
   },
   "resources/js/pages/Game.vue": {
-    "file": "assets/Game-txWJs6LI.js",
+    "file": "assets/Game-D9L8kkkY.js",
     "name": "Game",
     "src": "resources/js/pages/Game.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_useGameAnimations-DdfGayBq.js",
-      "_index-PE8TTLQG.js",
-      "_index-DVa01ObJ.js",
-      "_index-BNxanb9c.js",
-      "_index-_v6AJgCX.js",
-      "_gameStore-BOnw8-vt.js"
+      "_useGameAnimations-PXPL6g-E.js",
+      "_index-Cq6svf21.js",
+      "_index-BIO9vAna.js",
+      "_index-DZsesr37.js",
+      "_index-C6JQhXG2.js",
+      "_gameStore-Dza1nP_v.js"
     ],
     "css": [
-      "assets/Game-BjRKyYWa.css"
+      "assets/Game-DQddcAK4.css"
     ]
   },
   "resources/js/pages/GameSpectate.vue": {
-    "file": "assets/GameSpectate-CTN0ENqA.js",
+    "file": "assets/GameSpectate-DnotQ9rN.js",
     "name": "GameSpectate",
     "src": "resources/js/pages/GameSpectate.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_useGameAnimations-DdfGayBq.js",
-      "_gameStore-BOnw8-vt.js"
+      "_useGameAnimations-PXPL6g-E.js",
+      "_gameStore-Dza1nP_v.js"
     ]
   },
   "resources/js/pages/Games.vue": {
-    "file": "assets/Games-BgEuq8hV.js",
+    "file": "assets/Games-BLViLQtM.js",
     "name": "Games",
     "src": "resources/js/pages/Games.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-3nDrhvS_.js"
+      "_index-BS2nrofy.js"
     ]
   },
   "resources/js/pages/HallOfFame.vue": {
-    "file": "assets/HallOfFame-kHmYEAvj.js",
+    "file": "assets/HallOfFame-7HQkpFYF.js",
     "name": "HallOfFame",
     "src": "resources/js/pages/HallOfFame.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-3nDrhvS_.js"
+      "_index-BS2nrofy.js"
     ]
   },
   "resources/js/pages/JoinGame.vue": {
-    "file": "assets/JoinGame-DxOWLOpp.js",
+    "file": "assets/JoinGame-B6RS14ta.js",
     "name": "JoinGame",
     "src": "resources/js/pages/JoinGame.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_gameStore-BOnw8-vt.js"
+      "_gameStore-Dza1nP_v.js"
     ]
   },
   "resources/js/pages/Leaderboard.vue": {
-    "file": "assets/Leaderboard-CmhyAef0.js",
+    "file": "assets/Leaderboard-Ccu6DVEH.js",
     "name": "Leaderboard",
     "src": "resources/js/pages/Leaderboard.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-3nDrhvS_.js",
-      "_index-COXOWVZ6.js",
-      "_index-PE8TTLQG.js",
-      "_index-CUkeIeZJ.js",
-      "_index-_v6AJgCX.js"
+      "_index-BS2nrofy.js",
+      "_index-BKKH4_c-.js",
+      "_index-Cq6svf21.js",
+      "_index-1j-TzDj1.js",
+      "_index-C6JQhXG2.js"
     ]
   },
   "resources/js/pages/Login.vue": {
-    "file": "assets/Login-yo7fXdam.js",
+    "file": "assets/Login-k2hHENFc.js",
     "name": "Login",
     "src": "resources/js/pages/Login.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-DwbqiQb_.js",
-      "_index-PE8TTLQG.js"
+      "_index-n8juTW55.js",
+      "_index-Cq6svf21.js"
     ]
   },
   "resources/js/pages/NotFound.vue": {
-    "file": "assets/NotFound-DEMCnaTK.js",
+    "file": "assets/NotFound-DxRZ1Wjn.js",
     "name": "NotFound",
     "src": "resources/js/pages/NotFound.vue",
     "isDynamicEntry": true,
@@ -290,53 +290,53 @@
     ]
   },
   "resources/js/pages/Profile.vue": {
-    "file": "assets/Profile-CblAKbQf.js",
+    "file": "assets/Profile-jUCt0f4h.js",
     "name": "Profile",
     "src": "resources/js/pages/Profile.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-3nDrhvS_.js",
-      "_index-CGC46A3j.js",
-      "_index-CUkeIeZJ.js"
+      "_index-BS2nrofy.js",
+      "_index-D4PJhSFh.js",
+      "_index-1j-TzDj1.js"
     ]
   },
   "resources/js/pages/ProfileSettings.vue": {
-    "file": "assets/ProfileSettings-BgtTP9YF.js",
+    "file": "assets/ProfileSettings-BToAnWvt.js",
     "name": "ProfileSettings",
     "src": "resources/js/pages/ProfileSettings.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-DwbqiQb_.js",
-      "_index-BNxanb9c.js",
-      "_index-PE8TTLQG.js"
+      "_index-n8juTW55.js",
+      "_index-DZsesr37.js",
+      "_index-Cq6svf21.js"
     ]
   },
   "resources/js/pages/Register.vue": {
-    "file": "assets/Register-D6Yxp6PU.js",
+    "file": "assets/Register-DvyPmih1.js",
     "name": "Register",
     "src": "resources/js/pages/Register.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-DwbqiQb_.js",
-      "_index-PE8TTLQG.js"
+      "_index-n8juTW55.js",
+      "_index-Cq6svf21.js"
     ]
   },
   "resources/js/pages/ResetPassword.vue": {
-    "file": "assets/ResetPassword-CR2zlh9z.js",
+    "file": "assets/ResetPassword-BIjttbSs.js",
     "name": "ResetPassword",
     "src": "resources/js/pages/ResetPassword.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_index-DwbqiQb_.js",
-      "_index-PE8TTLQG.js"
+      "_index-n8juTW55.js",
+      "_index-Cq6svf21.js"
     ]
   },
   "resources/js/pages/WebSocketTest.vue": {
-    "file": "assets/WebSocketTest-3YvXzNng.js",
+    "file": "assets/WebSocketTest-D-RRpChV.js",
     "name": "WebSocketTest",
     "src": "resources/js/pages/WebSocketTest.vue",
     "isDynamicEntry": true,
@@ -345,7 +345,7 @@
     ]
   },
   "resources/js/pages/Welcome.vue": {
-    "file": "assets/Welcome-BkeKirA-.js",
+    "file": "assets/Welcome-CvbnSVTq.js",
     "name": "Welcome",
     "src": "resources/js/pages/Welcome.vue",
     "isDynamicEntry": true,

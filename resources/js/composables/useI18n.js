@@ -26,11 +26,11 @@ const translations = {
 
         // Hero / Welcome
         'hero.title': 'SELECT',
-        'hero.subtitle': 'Fra #select på EFnet — nå på mobilen din',
+        'hero.subtitle': 'Det klassiske akronym-spillet',
         'hero.description': 'Det klassiske akronym-spillet der kreativitet og humor vinner',
         'how.title': 'Slik spiller du',
         'how.step1.title': 'Få et akronym',
-        'how.step1.desc': 'Delectus gir deg tilfeldige bokstaver som du skal lage en setning av',
+        'how.step1.desc': 'Du får tilfeldige bokstaver som du skal lage en setning av',
         'how.step2.title': 'Lag en setning',
         'how.step2.desc': 'Hvert ord må starte med riktig bokstav',
         'how.step3.title': 'Stem på den beste',
@@ -43,7 +43,7 @@ const translations = {
         'stats.gamesPlayed': 'Spill spilt',
         'stats.sentences': 'Setninger',
         'stats.activePlayers': 'Aktive spillere',
-        'footer.tagline': 'Delectus — spillmesteren fra #select på EFnet',
+        'footer.tagline': 'SELECT — det klassiske akronym-spillet',
 
         // Auth
         'auth.login.title': 'Logg inn',
@@ -369,11 +369,11 @@ const translations = {
 
         // Hero / Welcome
         'hero.title': 'SELECT',
-        'hero.subtitle': 'From #select on EFnet — now on your phone',
+        'hero.subtitle': 'The classic acronym game',
         'hero.description': 'The classic acronym game where creativity and humor wins',
         'how.title': 'How to play',
         'how.step1.title': 'Get an acronym',
-        'how.step1.desc': 'Delectus gives you random letters that you need to form a sentence from',
+        'how.step1.desc': 'You get random letters that you need to form a sentence from',
         'how.step2.title': 'Create a sentence',
         'how.step2.desc': 'Each word must start with the correct letter',
         'how.step3.title': 'Vote for the best',
@@ -386,7 +386,7 @@ const translations = {
         'stats.gamesPlayed': 'Games played',
         'stats.sentences': 'Sentences',
         'stats.activePlayers': 'Active players',
-        'footer.tagline': 'Delectus — the game master from #select on EFnet',
+        'footer.tagline': 'SELECT — the classic acronym game',
 
         // Auth
         'auth.login.title': 'Log in',

@@ -175,6 +175,11 @@ export const useGameStore = defineStore('game', () => {
         const { data } = await api.games.kick(code, playerId);
         // Remove from local player list
         players.value = players.value.filter(p => p.id !== data.player_id);
+        // Refresh game to keep state in sync
+        if (currentGame.value) {
+            const refreshed = await api.games.get(code);
+            currentGame.value = refreshed.data.game;
+        }
         return data;
     }
 
@@ -182,6 +187,11 @@ export const useGameStore = defineStore('game', () => {
         const { data } = await api.games.ban(code, playerId, reason);
         // Remove from local player list
         players.value = players.value.filter(p => p.id !== data.player_id);
+        // Refresh game to update banned_players list
+        if (currentGame.value) {
+            const refreshed = await api.games.get(code);
+            currentGame.value = refreshed.data.game;
+        }
         return data;
     }
 

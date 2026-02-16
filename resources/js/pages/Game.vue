@@ -896,7 +896,6 @@
             <Button :label="t('common.save')" severity="success" :loading="settingsLoading" @click="handleSaveSettings" />
         </div>
     </Dialog>
-    <ConfirmDialog />
 </template>
 
 <script setup>
@@ -912,7 +911,7 @@ import Popover from 'primevue/popover';
 import Slider from 'primevue/slider';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Checkbox from 'primevue/checkbox';
-import ConfirmDialog from 'primevue/confirmdialog';
+
 import { useConfirm } from 'primevue/useconfirm';
 import confetti from 'canvas-confetti';
 import GameLayout from '../layouts/GameLayout.vue';
@@ -1460,8 +1459,12 @@ function openNicknameDialog() {
     nicknameError.value = '';
     nicknameDialogVisible.value = true;
     setTimeout(() => {
-        nicknameInputRef.value?.$el?.focus();
-    }, 100);
+        const el = nicknameInputRef.value?.$el;
+        if (el) {
+            if (el.tagName === 'INPUT') el.focus();
+            else el.querySelector?.('input')?.focus();
+        }
+    }, 350);
 }
 
 async function submitNickname() {

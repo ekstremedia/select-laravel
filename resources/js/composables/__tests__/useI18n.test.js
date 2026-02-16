@@ -14,7 +14,7 @@ describe('useI18n', () => {
         const { t } = useI18n();
 
         expect(t('hero.title')).toBe('SELECT');
-        expect(t('hero.subtitle')).toBe('Fra #select på EFnet — nå på mobilen din');
+        expect(t('hero.subtitle')).toBe('Det klassiske akronym-spillet');
     });
 
     it('returns the key if translation is missing', async () => {
