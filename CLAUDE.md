@@ -8,7 +8,7 @@ Multiplayer acronym word game. Players get a random acronym, write sentences mat
 - **Frontend:** Vue 3 (Composition API), Inertia.js, PrimeVue, Pinia, Tailwind CSS 4
 - **Build:** Vite, yarn (not npm)
 - **Testing:** PHPUnit (backend), Vitest + happy-dom + @vue/test-utils (frontend)
-- **Infra:** Docker (docker-compose), Laravel Sail
+- **Infra:** Docker (docker-compose)
 
 ## Architecture
 
