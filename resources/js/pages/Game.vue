@@ -723,24 +723,24 @@
         </div>
         <div class="flex gap-2 justify-end">
             <Button :label="t('common.cancel')" severity="secondary" variant="outlined" @click="banDialogVisible = false" />
-            <Button :label="t('lobby.ban')" severity="danger" @click="confirmBan" />
+            <Button :label="t('lobby.ban')" severity="danger" :loading="banLoading" @click="confirmBan" />
         </div>
     </Dialog>
-    <Dialog v-model:visible="nicknameDialogVisible" :header="t('guest.changeNickname')" modal :style="{ width: '22rem' }">
-        <form @submit.prevent="submitNickname" class="space-y-4">
+    <Dialog v-model:visible="nicknameDialog.visible.value" :header="t('guest.changeNickname')" modal :style="{ width: '22rem' }">
+        <form @submit.prevent="nicknameDialog.submit" class="space-y-4">
             <div class="flex flex-col gap-2">
                 <label class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ t('guest.newNickname') }}</label>
                 <InputText
-                    ref="nicknameInputRef"
-                    v-model="newNickname"
+                    :ref="(el) => { nicknameDialog.inputRef.value = el; }"
+                    v-model="nicknameDialog.newNickname.value"
                     class="w-full"
-                    @keydown.enter.prevent="submitNickname"
+                    @keydown.enter.prevent="nicknameDialog.submit"
                 />
-                <small v-if="nicknameError" class="text-red-500">{{ nicknameError }}</small>
+                <small v-if="nicknameDialog.error.value" class="text-red-500">{{ nicknameDialog.error.value }}</small>
             </div>
             <div class="flex justify-end gap-2">
-                <Button :label="t('common.cancel')" severity="secondary" variant="text" @click="nicknameDialogVisible = false" />
-                <Button type="submit" :label="t('common.save')" severity="success" :loading="nicknameLoading" />
+                <Button :label="t('common.cancel')" severity="secondary" variant="text" @click="nicknameDialog.close" />
+                <Button type="submit" :label="t('common.save')" severity="success" :loading="nicknameDialog.loading.value" />
             </div>
         </form>
     </Dialog>
@@ -896,7 +896,6 @@
             <Button :label="t('common.save')" severity="success" :loading="settingsLoading" @click="handleSaveSettings" />
         </div>
     </Dialog>
-    <ConfirmDialog />
 </template>
 
 <script setup>
@@ -912,7 +911,7 @@ import Popover from 'primevue/popover';
 import Slider from 'primevue/slider';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Checkbox from 'primevue/checkbox';
-import ConfirmDialog from 'primevue/confirmdialog';
+
 import { useConfirm } from 'primevue/useconfirm';
 import confetti from 'canvas-confetti';
 import GameLayout from '../layouts/GameLayout.vue';
@@ -922,6 +921,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useI18n } from '../composables/useI18n.js';
 import { useGameAnimations } from '../composables/useGameAnimations.js';
 import { api, getApiError } from '../services/api.js';
+import { useNicknameDialog } from '../composables/useNicknameDialog.js';
 
 defineOptions({ layout: false });
 
@@ -958,16 +958,18 @@ const unreadCount = ref(0);
 const isEditing = ref(false);
 const submitCount = ref(0);
 const rematchLoading = ref(false);
-const nicknameDialogVisible = ref(false);
-const newNickname = ref('');
-const nicknameError = ref('');
-const nicknameLoading = ref(false);
-const nicknameInputRef = ref(null);
+const nicknameDialog = useNicknameDialog({
+    onSuccess: (player) => {
+        const me = gameStore.players.find((p) => p.id === authStore.player.id);
+        if (me) me.nickname = player.nickname;
+    },
+});
 const voteCount = ref(0);
 const banDialogVisible = ref(false);
 const banDialogPlayerId = ref(null);
 const banDialogNickname = ref('');
 const banReason = ref('');
+const banLoading = ref(false);
 const playerMenuRef = ref(null);
 const menuPlayer = ref(null);
 const hostMenuRef = ref(null);
@@ -1456,45 +1458,17 @@ async function handleToggleCoHost(playerId) {
 }
 
 function openNicknameDialog() {
-    newNickname.value = authStore.player?.nickname || '';
-    nicknameError.value = '';
-    nicknameDialogVisible.value = true;
-    setTimeout(() => {
-        nicknameInputRef.value?.$el?.focus();
-    }, 100);
-}
-
-async function submitNickname() {
-    const trimmed = newNickname.value.trim();
-    if (!trimmed) {
-        return;
-    }
-
-    nicknameLoading.value = true;
-    nicknameError.value = '';
-
-    try {
-        const { data } = await api.profile.updateNickname(trimmed);
-        authStore.player = { ...authStore.player, nickname: data.player.nickname };
-
-        // Update local player list immediately (own echo may not arrive)
-        const me = gameStore.players.find((p) => p.id === authStore.player.id);
-        if (me) {
-            me.nickname = data.player.nickname;
-        }
-
-        nicknameDialogVisible.value = false;
-    } catch (err) {
-        nicknameError.value = err.response?.data?.errors?.nickname?.[0] || err.response?.data?.message || t('common.error');
-    } finally {
-        nicknameLoading.value = false;
-    }
+    nicknameDialog.open();
 }
 
 function canManagePlayer(player) {
-    if (player.id === gameStore.currentGame?.host_player_id) return false;
+    if (!gameStore.isHost) return false;
     if (player.id === authStore.player?.id) return false;
-    return gameStore.isHost;
+    // Co-hosts cannot manage other co-hosts, only the actual host can
+    if (!gameStore.isActualHost && player.is_co_host) return false;
+    // Nobody can manage the actual host
+    if (player.id === gameStore.currentGame?.host_player_id) return false;
+    return true;
 }
 
 function togglePlayerMenu(event, player) {
@@ -1565,11 +1539,14 @@ function handleBanPlayer(playerId, nickname) {
 }
 
 async function confirmBan() {
+    banLoading.value = true;
     try {
         await gameStore.banPlayer(props.code, banDialogPlayerId.value, banReason.value || null);
         banDialogVisible.value = false;
     } catch (err) {
         error.value = err.response?.data?.error || t('common.error');
+    } finally {
+        banLoading.value = false;
     }
 }
 

@@ -197,7 +197,7 @@ class GameBanTest extends TestCase
         $response->assertJson(['error' => 'Kan ikke utestenge spillere fra et avsluttet spill.']);
     }
 
-    public function test_unban_only_works_in_lobby(): void
+    public function test_unban_works_during_active_game(): void
     {
         $code = $this->createGameWithPlayers();
 
@@ -211,7 +211,7 @@ class GameBanTest extends TestCase
         $response = $this->withHeaders(['X-Guest-Token' => $this->hostToken])
             ->postJson("/api/v1/games/{$code}/unban/{$this->guestPlayer->id}");
 
-        $response->assertStatus(422);
-        $response->assertJson(['error' => 'Kan bare oppheve utestengelse i lobbyen.']);
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
     }
 }
