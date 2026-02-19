@@ -62,7 +62,7 @@ describe('CreateGame.vue', () => {
         expect(wrapper.text()).toContain('create.acronymLength');
         expect(wrapper.text()).toContain('create.maxPlayers');
         expect(wrapper.text()).toContain('create.excludeLetters');
-        expect(wrapper.text()).toContain('create.weightedAcronyms');
+        expect(wrapper.text()).toContain('create.acronymSource');
         expect(wrapper.text()).toContain('create.visibility');
     });
 
@@ -123,7 +123,7 @@ describe('CreateGame.vue', () => {
         expect(payload.settings.allow_ready_check).toBe(true);
         expect(payload.settings.max_edits).toBe(0);
         expect(payload.settings.max_vote_changes).toBe(0);
-        expect(payload.settings.weighted_acronyms).toBe(false);
+        expect(payload.settings.acronym_source).toBe('random');
 
         // Public by default
         expect(payload.is_public).toBe(true);

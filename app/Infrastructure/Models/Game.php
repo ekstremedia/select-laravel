@@ -143,6 +143,7 @@ class Game extends Model
             'acronym_length_max' => 5,
             'excluded_letters' => '',
             'weighted_acronyms' => false,
+            'acronym_source' => 'random',
             'chat_enabled' => true,
             'max_edits' => 0,
             'max_vote_changes' => 0,

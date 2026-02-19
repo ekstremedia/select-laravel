@@ -99,9 +99,10 @@
 
                 <!-- Excluded letters -->
                 <div>
-                    <label class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
+                    <label class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
                         {{ t('create.excludeLetters') }}
                     </label>
+                    <p class="text-xs text-slate-400 mb-2">{{ t('create.excludeLettersDesc') }}</p>
                     <InputText
                         v-model="settings.excluded_letters"
                         class="w-full uppercase tracking-[0.2em] font-mono"
@@ -110,15 +111,37 @@
                     />
                 </div>
 
-                <!-- Weighted acronyms -->
-                <div class="flex items-center justify-between">
-                    <div>
-                        <label for="weightedAcronyms" class="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                            {{ t('create.weightedAcronyms') }}
-                        </label>
-                        <p class="text-xs text-slate-400">{{ t('create.weightedAcronymsDesc') }}</p>
+                <!-- Acronym source -->
+                <div>
+                    <label class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
+                        {{ t('create.acronymSource') }}
+                    </label>
+                    <div class="flex gap-2">
+                        <Button
+                            :label="t('create.acronymSourceRandom')"
+                            :severity="settings.acronym_source === 'random' ? 'success' : 'secondary'"
+                            :variant="settings.acronym_source === 'random' ? undefined : 'outlined'"
+                            size="small"
+                            @click="settings.acronym_source = 'random'"
+                        />
+                        <Button
+                            :label="t('create.acronymSourceWeighted')"
+                            :severity="settings.acronym_source === 'weighted' ? 'success' : 'secondary'"
+                            :variant="settings.acronym_source === 'weighted' ? undefined : 'outlined'"
+                            size="small"
+                            @click="settings.acronym_source = 'weighted'"
+                        />
+                        <Button
+                            :label="t('create.acronymSourceGullkorn')"
+                            :severity="settings.acronym_source === 'gullkorn' ? 'success' : 'secondary'"
+                            :variant="settings.acronym_source === 'gullkorn' ? undefined : 'outlined'"
+                            size="small"
+                            @click="settings.acronym_source = 'gullkorn'"
+                        />
                     </div>
-                    <ToggleSwitch v-model="settings.weighted_acronyms" inputId="weightedAcronyms" />
+                    <p class="text-xs text-slate-400 mt-2">
+                        {{ settings.acronym_source === 'random' ? t('create.acronymSourceRandomDesc') : settings.acronym_source === 'weighted' ? t('create.acronymSourceWeightedDesc') : t('create.acronymSourceGullkornDesc') }}
+                    </p>
                 </div>
             </div>
 
@@ -202,7 +225,7 @@ const settings = reactive({
     acronym_length: 5,
     max_players: 8,
     excluded_letters: '',
-    weighted_acronyms: false,
+    acronym_source: 'random',
     is_private: false,
     password: '',
     chat_enabled: true,
@@ -231,7 +254,7 @@ async function handleCreate() {
             allow_ready_check: settings.allow_ready_check,
             max_edits: settings.max_edits,
             max_vote_changes: settings.max_vote_changes,
-            weighted_acronyms: settings.weighted_acronyms,
+            acronym_source: settings.acronym_source,
         };
         if (settings.excluded_letters) {
             gameSettings.excluded_letters = settings.excluded_letters;

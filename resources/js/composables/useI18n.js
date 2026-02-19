@@ -303,6 +303,14 @@ const translations = {
         'create.unlimited': 'Ubegrenset',
         'create.weightedAcronyms': 'Smarte akronymer',
         'create.weightedAcronymsDesc': 'Av: helt tilfeldige bokstaver. På: bokstaver som S, T, N dukker opp oftere, sjeldne som Q, X, Z nesten aldri, og minst én vokal er garantert.',
+        'create.acronymSource': 'Akronymkilde',
+        'create.acronymSourceRandom': 'Tilfeldig',
+        'create.acronymSourceWeighted': 'Smart',
+        'create.acronymSourceGullkorn': 'Gullkorn',
+        'create.acronymSourceRandomDesc': 'Helt tilfeldige bokstaver (A–Z).',
+        'create.acronymSourceWeightedDesc': 'Vanlige bokstaver oftere, sjeldne nesten aldri, minst én vokal.',
+        'create.acronymSourceGullkornDesc': 'Akronymet hentes fra en ekte setning i gullkorn-databasen. Gir mer realistiske bot-svar.',
+        'create.excludeLettersDesc': 'Skriv bokstavene direkte, uten komma (f.eks. XZQ).',
 
         // Lobby - additional
         'lobby.bot': 'Bot',
@@ -646,6 +654,14 @@ const translations = {
         'create.unlimited': 'Unlimited',
         'create.weightedAcronyms': 'Smart acronyms',
         'create.weightedAcronymsDesc': 'Off: fully random letters. On: common letters like S, T, N appear more often, rare ones like Q, X, Z almost never, and at least one vowel is guaranteed.',
+        'create.acronymSource': 'Acronym source',
+        'create.acronymSourceRandom': 'Random',
+        'create.acronymSourceWeighted': 'Smart',
+        'create.acronymSourceGullkorn': 'Gullkorn',
+        'create.acronymSourceRandomDesc': 'Fully random letters (A–Z).',
+        'create.acronymSourceWeightedDesc': 'Common letters more often, rare ones almost never, at least one vowel.',
+        'create.acronymSourceGullkornDesc': 'Acronym is taken from a real sentence in the gullkorn database. Gives more realistic bot answers.',
+        'create.excludeLettersDesc': 'Type letters directly, no commas (e.g. XZQ).',
 
         // Lobby - additional
         'lobby.bot': 'Bot',

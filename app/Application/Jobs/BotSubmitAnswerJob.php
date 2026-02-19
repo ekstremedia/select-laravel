@@ -14,6 +14,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BotSubmitAnswerJob implements ShouldQueue
@@ -37,8 +38,21 @@ class BotSubmitAnswerJob implements ShouldQueue
         }
 
         try {
-            $text = $botAnswerService->findAnswer($round->acronym);
-            $answer = $submitAction->execute($round, $player, $text);
+            $excludeIds = $round->used_gullkorn_ids ?? [];
+            $result = $botAnswerService->findAnswer($round->acronym, $excludeIds);
+            $answer = $submitAction->execute($round, $player, $result['text']);
+
+            // Track used gullkorn ID for deduplication
+            if ($result['gullkorn_id']) {
+                DB::table('rounds')
+                    ->where('id', $round->id)
+                    ->whereNotNull('used_gullkorn_ids')
+                    ->update([
+                        'used_gullkorn_ids' => DB::raw(
+                            "used_gullkorn_ids || '".json_encode([$result['gullkorn_id']])."'::jsonb"
+                        ),
+                    ]);
+            }
         } catch (\Throwable $e) {
             Log::warning('Bot failed to submit answer', [
                 'player_id' => $this->playerId,

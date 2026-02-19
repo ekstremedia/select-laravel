@@ -20,6 +20,8 @@ class Round extends Model
         'answer_deadline',
         'vote_deadline',
         'grace_count',
+        'gullkorn_source_id',
+        'used_gullkorn_ids',
     ];
 
     protected $casts = [
@@ -27,6 +29,8 @@ class Round extends Model
         'answer_deadline' => 'datetime',
         'vote_deadline' => 'datetime',
         'grace_count' => 'integer',
+        'gullkorn_source_id' => 'integer',
+        'used_gullkorn_ids' => 'array',
     ];
 
     public const STATUS_ANSWERING = 'answering';

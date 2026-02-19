@@ -12,23 +12,29 @@ class BotAnswerService
     /**
      * Find a sentence from gullkorn_clean that matches the given acronym,
      * or generate a fallback sentence.
+     *
+     * @param  array  $excludeGullkornIds  IDs of gullkorn sentences already used (for dedup)
+     * @return array{text: string, gullkorn_id: int|null}
      */
-    public function findAnswer(string $acronym): string
+    public function findAnswer(string $acronym, array $excludeGullkornIds = []): array
     {
         $acronym = strtoupper($acronym);
         $letters = str_split($acronym);
 
         // Try to find a matching gullkorn sentence
-        $match = $this->findMatchingGullkorn($letters);
+        $match = $this->findMatchingGullkorn($letters, $excludeGullkornIds);
         if ($match) {
             return $match;
         }
 
         // Fallback: generate a simple sentence
-        return $this->generateFallback($letters);
+        return ['text' => $this->generateFallback($letters), 'gullkorn_id' => null];
     }
 
-    private function findMatchingGullkorn(array $letters): ?string
+    /**
+     * @return array{text: string, gullkorn_id: int}|null
+     */
+    private function findMatchingGullkorn(array $letters, array $excludeIds = []): ?array
     {
         $length = count($letters);
 
@@ -45,6 +51,10 @@ class BotAnswerService
                 );
             }
 
+            if (! empty($excludeIds)) {
+                $query->whereNotIn('id', $excludeIds);
+            }
+
             // Pick a random one from the top 20 most-voted matches
             $results = $query
                 ->orderByDesc('stemmer')
@@ -55,7 +65,12 @@ class BotAnswerService
                 return null;
             }
 
-            return mb_strtolower($results->random()->setning);
+            $sentence = $results->random();
+
+            return [
+                'text' => mb_strtolower($sentence->setning),
+                'gullkorn_id' => $sentence->id,
+            ];
         } catch (\Throwable $e) {
             Log::warning('BotAnswerService: gullkorn_clean query failed', ['error' => $e->getMessage()]);
 

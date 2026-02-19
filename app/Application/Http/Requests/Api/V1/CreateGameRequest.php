@@ -25,6 +25,7 @@ class CreateGameRequest extends FormRequest
             'settings.time_between_rounds' => ['nullable', 'integer', 'min:3', 'max:120'],
             'settings.excluded_letters' => ['nullable', 'string', 'max:26'],
             'settings.weighted_acronyms' => ['nullable', 'boolean'],
+            'settings.acronym_source' => ['nullable', 'string', 'in:random,weighted,gullkorn'],
             'settings.chat_enabled' => ['nullable', 'boolean'],
             'settings.max_edits' => ['nullable', 'integer', 'min:0', 'max:20'],
             'settings.max_vote_changes' => ['nullable', 'integer', 'min:0', 'max:20'],

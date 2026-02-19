@@ -328,6 +328,8 @@
                                 <span class="font-medium text-slate-700 dark:text-slate-300">{{ (gameStore.currentGame?.settings?.max_vote_changes ?? 0) === 0 ? t('create.unlimited') : gameStore.currentGame?.settings?.max_vote_changes }}</span>
                                 <span>{{ t('create.readyCheck') }}:</span>
                                 <span class="font-medium text-slate-700 dark:text-slate-300">{{ (gameStore.currentGame?.settings?.allow_ready_check ?? true) ? t('common.yes') : t('common.no') }}</span>
+                                <span>{{ t('create.acronymSource') }}:</span>
+                                <span class="font-medium text-slate-700 dark:text-slate-300">{{ { random: t('create.acronymSourceRandom'), weighted: t('create.acronymSourceWeighted'), gullkorn: t('create.acronymSourceGullkorn') }[gameStore.currentGame?.settings?.acronym_source ?? (gameStore.currentGame?.settings?.weighted_acronyms ? 'weighted' : 'random')] }}</span>
                                 <span>{{ t('game.chat') }}:</span>
                                 <span class="font-medium text-slate-700 dark:text-slate-300">{{ (gameStore.currentGame?.settings?.chat_enabled ?? true) ? t('common.yes') : t('common.no') }}</span>
                                 <span>{{ t('create.visibility') }}:</span>
@@ -812,15 +814,48 @@
             </div>
 
             <div>
-                <label class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
+                <label class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
                     {{ t('create.excludeLetters') }}
                 </label>
+                <p class="text-xs text-slate-400 mb-2">{{ t('create.excludeLettersDesc') }}</p>
                 <InputText
                     v-model="settingsForm.excluded_letters"
                     class="w-full uppercase tracking-[0.2em] font-mono"
                     :placeholder="'XZQ'"
                     @input="settingsForm.excluded_letters = settingsForm.excluded_letters.toUpperCase().replace(/[^A-ZÆØÅ]/g, '')"
                 />
+            </div>
+
+            <div>
+                <label class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
+                    {{ t('create.acronymSource') }}
+                </label>
+                <div class="flex gap-2">
+                    <Button
+                        :label="t('create.acronymSourceRandom')"
+                        :severity="settingsForm.acronym_source === 'random' ? 'success' : 'secondary'"
+                        :variant="settingsForm.acronym_source === 'random' ? undefined : 'outlined'"
+                        size="small"
+                        @click="settingsForm.acronym_source = 'random'"
+                    />
+                    <Button
+                        :label="t('create.acronymSourceWeighted')"
+                        :severity="settingsForm.acronym_source === 'weighted' ? 'success' : 'secondary'"
+                        :variant="settingsForm.acronym_source === 'weighted' ? undefined : 'outlined'"
+                        size="small"
+                        @click="settingsForm.acronym_source = 'weighted'"
+                    />
+                    <Button
+                        :label="t('create.acronymSourceGullkorn')"
+                        :severity="settingsForm.acronym_source === 'gullkorn' ? 'success' : 'secondary'"
+                        :variant="settingsForm.acronym_source === 'gullkorn' ? undefined : 'outlined'"
+                        size="small"
+                        @click="settingsForm.acronym_source = 'gullkorn'"
+                    />
+                </div>
+                <p class="text-xs text-slate-400 mt-2">
+                    {{ settingsForm.acronym_source === 'random' ? t('create.acronymSourceRandomDesc') : settingsForm.acronym_source === 'weighted' ? t('create.acronymSourceWeightedDesc') : t('create.acronymSourceGullkornDesc') }}
+                </p>
             </div>
 
             <div>
@@ -989,6 +1024,7 @@ const settingsForm = reactive({
     acronym_length: 5,
     max_players: 8,
     excluded_letters: '',
+    acronym_source: 'random',
     chat_enabled: true,
     allow_ready_check: true,
     max_edits: 0,
@@ -1637,6 +1673,7 @@ function openSettingsDialog() {
     settingsForm.acronym_length = s.acronym_length_min ?? 5;
     settingsForm.max_players = s.max_players ?? 8;
     settingsForm.excluded_letters = s.excluded_letters ?? '';
+    settingsForm.acronym_source = s.acronym_source ?? (s.weighted_acronyms ? 'weighted' : 'random');
     settingsForm.chat_enabled = s.chat_enabled ?? true;
     settingsForm.allow_ready_check = s.allow_ready_check ?? true;
     settingsForm.max_edits = s.max_edits ?? 0;
@@ -1661,6 +1698,7 @@ async function handleSaveSettings() {
                 acronym_length_max: settingsForm.acronym_length,
                 max_players: settingsForm.max_players,
                 excluded_letters: settingsForm.excluded_letters || undefined,
+                acronym_source: settingsForm.acronym_source,
                 chat_enabled: settingsForm.chat_enabled,
                 allow_ready_check: settingsForm.allow_ready_check,
                 max_edits: settingsForm.max_edits,
