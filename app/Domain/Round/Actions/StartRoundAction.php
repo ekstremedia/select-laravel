@@ -40,8 +40,10 @@ class StartRoundAction
             if ($result) {
                 $acronym = $result['acronym'];
                 $gullkornSourceId = $result['gullkorn_id'];
-                // Initialize used IDs with the source sentence so bots don't repeat it
-                $usedGullkornIds = [$result['gullkorn_id']];
+                // Initialize empty — bots CAN use the source sentence (that's the point
+                // of gullkorn mode). Dedup only prevents multiple bots from picking the
+                // same sentence as each other.
+                $usedGullkornIds = [];
             }
             // Fall back to weighted if no gullkorn match found
             if (! $acronym) {
